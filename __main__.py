@@ -37,8 +37,17 @@ except ImportError:
 import traceback
 import logging
 from time import sleep
+from dotenv import load_dotenv
 import tswitch.variables as var
 from tswitch.functions import *
+
+#importing env variables
+load_dotenv()
+
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_ADM_CHATID = os.getenv("TELEGRAM_ADM_CHATID")
+PUSHHOVER_USERKEY = os.getenv("PUSHHOVER_USERKEY")
+PUSHOVER_APIKEY = os.getenv("PUSHOVER_APIKEY")
 
 # # external
 # import os, sys, inspect
@@ -61,8 +70,8 @@ def PushNotif(context, text, title, priority):
     if var.PUSHOVER:
         try:
             logging.info(f'ERROR HANDLER [pushover]: trying to send push notification')
-            client = Client(var.PUSHHOVER_USERKEY, 
-                            api_token=var.PUSHOVER_APIKEY)
+            client = Client(PUSHHOVER_USERKEY, 
+                            api_token=PUSHOVER_APIKEY)
             client.send_message(text, 
                                 title=title, 
                                 priority=priority)
@@ -83,11 +92,11 @@ def PushNotif(context, text, title, priority):
         try:
             logging.info(f'ERROR HANDLER [telegram]: trying to send push notification')
             try:
-                context.bot.send_message(chat_id=var.TELEGRAM_ADM_CHATID, 
+                context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
                                         text=f"<b>🔴{title}</b>\n<code>{text}</code>",
                                         parse_mode=telegram.ParseMode.HTML)
             except:
-                context.bot.send_message(chat_id=var.TELEGRAM_ADM_CHATID, 
+                context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
                                         text=f"🔴{title}\n{text}")
                 
             logging.info(f'ERROR HANDLER [telegram]: push notification sent')
@@ -346,7 +355,7 @@ def error_handler(update, context):
     
     # leting the user know
     try:
-        if str(user_id) != var.TELEGRAM_ADM_CHATID:
+        if str(user_id) != TELEGRAM_ADM_CHATID:
             context.bot.send_message(chat_id=user_id, text="Oopsie, something went wrong on my side, I've reported the problem to my owner and he'll deal with it as soon as possible.")
             logging.info(f'ERROR HANDLER: letting the user know there was a problem')
     except Exception as e:
@@ -392,7 +401,7 @@ def main():
     create_folder(f'{get_script_dir()}/database')
     my_persistence = PicklePersistence(filename=f'{get_script_dir()}/database/user_database.db')
 
-    updater = Updater(token=var.TELEGRAM_TOKEN, persistence=my_persistence, use_context=True)
+    updater = Updater(token=TELEGRAM_TOKEN, persistence=my_persistence, use_context=True)
     job = updater.job_queue
 
     dispatcher = updater.dispatcher
