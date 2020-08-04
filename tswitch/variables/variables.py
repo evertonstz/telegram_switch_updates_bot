@@ -20,19 +20,16 @@ VERSION = '0.0.1'
 VERSION_CHECKING_INTERVAL = 3600  #this is the interval in seconds NXVERSION will be checked by the JobQueue 
 TITLEDB_CHECKING_INTERVAL = 86400 #this is the interval in seconds TITLEDB will be checked by the JobQueue
 
-# Bot information
-TELEGRAM_TOKEN = '***REMOVED***'
+# github databases
 NXVERSION = 'https://github.com/16BitWonder/nx-versions'
-# NXVERSION = 'https://github.com/evertonstz/nx-versions'
 TITLEDB = 'https://github.com/blawar/titledb'
+# NXVERSION = 'https://github.com/evertonstz/nx-versions'
 
-# Debug Options #TODO add more services
+# Debug Options 
+# #TODO add more services
 #Telegram
 TELEGRAM_DEBUG = True
-TELEGRAM_ADM_CHATID = '***REMOVED***'
 #Pushover https://pushover.net/
 PUSHOVER = True
-PUSHHOVER_USERKEY = '***REMOVED***'
-PUSHOVER_APIKEY = '***REMOVED***'
 #Notify run https://notify.run/
 NOTIFY_RUN = False 
