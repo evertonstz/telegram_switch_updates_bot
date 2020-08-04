@@ -299,7 +299,7 @@ def add_games(update, context):
     
     reply_dict = {x:'🔴Invalid Game ID' for x in value_list}
     
-    valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16 and i.endswith('000')]))
+    valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16 and x.endswith('000')]))
     logging.info(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
     
     #adding valid ids to reply dictionary
@@ -343,9 +343,7 @@ def add_games(update, context):
     update.message.reply_text(reply_text,
                               parse_mode=telegram.ParseMode.HTML)
    
-
-                
-    logging.info(f'JobQueue [nx-versions]: end')   
+ 
 
 def jobqueue_error_handler(context, traceback, jobqueue):
         #report to the user
@@ -414,6 +412,9 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
                                         parse_mode=telegram.ParseMode.HTML)
                                         
                 logging.info(f'JobQueue [nx-versions]: notified {user_id}')
+    
+    logging.info(f'JobQueue [nx-versions]: end') 
+    
 # main
 def main():
     #create db folder
