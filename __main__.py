@@ -222,6 +222,12 @@ def rm_games(update, context):
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
                                   parse_mode=telegram.ParseMode.HTML)
         return
+    if len(value_list) > var.USER_LIMIT:
+        logging.info(f'USER REQUEST {user_id}: user gave too many IDS{len(value_list)}')
+        update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can remove {var.USER_LIMIT} IDs per operation.",
+                                  parse_mode=telegram.ParseMode.HTML)
+        return      
+    
     
     reply_dict = {x:'🔴Invalid Game ID' for x in value_list}
     
@@ -275,7 +281,7 @@ def add_games(update, context):
         if len(i) == 16 and i.endswith('800'):
             value_list.append(f'{i[:-3]}000')
         else:
-             value_list.append(i)
+            value_list.append(i)
              
     logging.info(f'USER REQUEST {user_id}: user databse interaction: add_games, provided IDs {value_list}.')
     
@@ -284,10 +290,16 @@ def add_games(update, context):
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
                                   parse_mode=telegram.ParseMode.HTML)
         return
+    if len(value_list) > var.USER_LIMIT:
+        logging.info(f'USER REQUEST {user_id}: user gave too many IDS{len(value_list)}')
+        update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
+                                  parse_mode=telegram.ParseMode.HTML)
+        return      
+    
     
     reply_dict = {x:'🔴Invalid Game ID' for x in value_list}
     
-    valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16]))
+    valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16 and i.endswith('000')]))
     logging.info(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
     
     #adding valid ids to reply dictionary
@@ -309,6 +321,13 @@ def add_games(update, context):
     
     # filter out games that are already in the list
     game_ids = list(set(valid_game_ids+stored_game_ids))
+    
+    if len(game_ids) > var.USER_LIMIT:
+        logging.info(f'USER REQUEST {user_id}: user gave too many IDS{len(value_list)}')
+        update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
+                                  parse_mode=telegram.ParseMode.HTML)
+        return   
+    
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
     # Store value
     context.bot_data[str(user_id)] = sorted(game_ids)
