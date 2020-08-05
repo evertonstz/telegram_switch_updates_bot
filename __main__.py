@@ -50,7 +50,7 @@ import telegram
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-#importing env variables
+#importing and testing env variables
 load_dotenv()
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
@@ -70,14 +70,15 @@ if PUSHHOVER_USERKEY in [None, '', ""] or Client == None or PUSHOVER_APIKEY in [
     var.NOTIFYRUN_DEBUG = False
 
 if UNLIMITED_USERS == None:
-    UNLIMITED_USERS = False
+    UNLIMITED_USERS = []
 elif UNLIMITED_USERS not in ['', ""]:
     UNLIMITED_USERS = UNLIMITED_USERS.split(',')
 else:
-    UNLIMITED_USERS = False
+    UNLIMITED_USERS = []
 
 #FUNCTIONS
 def PushNotif(context, text, title, priority):
+    # TODO add some logic to deal with messages longer than the 4096 character limit.
     """send push notifications to the ADM for bug report purposes"""
     if text == '':
         text = 'unknown error'
@@ -119,7 +120,8 @@ def PushNotif(context, text, title, priority):
             logging.info(f'ERROR HANDLER [telegram]: push notification sent')
         except Exception as e:
             logging.info(f'ERROR HANDLER [telegram]: unable to send push notification {e}')
-      
+
+    
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
         sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -131,6 +133,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     PushNotif("Uncaught exception, possible force exit", "Uncaught exception, possible force exit", 0)
 
 sys.excepthook = handle_exception
+
 
 def get_script_dir(follow_symlinks=True):
     """function used to get the directory the script is located"""
@@ -147,6 +150,7 @@ def get_script_dir(follow_symlinks=True):
 def unknown(update, context):
     response_message = "Unknown command..."
     update.message.reply_text(response_message)
+
 
 def stop(update, context):
     """used to remove user from database, can only be toggled by user request"""
@@ -172,7 +176,6 @@ def stop(update, context):
             update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
                                   parse_mode=telegram.ParseMode.HTML)
 
-    
 
 def start(update, context):
     #TODO make user options here, including exit and delete options
@@ -186,6 +189,7 @@ def start(update, context):
                         \n\n\n<i>PSA: The bot should be able to notify me automatically for most bugs and erros, but feel free to contact me at:\nTelegram: @evertonstz \nDiscord: Identify as chinese#6975</i>"
     update.message.reply_text(response_message,
                               parse_mode=telegram.ParseMode.HTML)
+
 
 def list_watched(update, context):
     """used to return the current watch list to the user"""
@@ -216,7 +220,8 @@ def list_watched(update, context):
     
     update.message.reply_text(reply_text,
                               parse_mode=telegram.ParseMode.HTML)
-                                  
+
+                                
 def rm_games(update, context):
     """used to remove games from users watch list"""
     user_id = update.message.from_user.id
@@ -239,8 +244,8 @@ def rm_games(update, context):
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
                                   parse_mode=telegram.ParseMode.HTML)
         return
-    if len(value_list) > var.USER_LIMIT:
-        logging.info(f'USER REQUEST {user_id}: user gave too many IDS{len(value_list)}')
+    if len(value_list) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
+        logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can remove {var.USER_LIMIT} IDs per operation.",
                                   parse_mode=telegram.ParseMode.HTML)
         return      
@@ -285,6 +290,7 @@ def rm_games(update, context):
     update.message.reply_text(reply_text,
                             parse_mode=telegram.ParseMode.HTML)
 
+
 def add_games(update, context):
     """used to add games to user database, calls for AddToUserDB()"""
     user_id = update.message.from_user.id
@@ -307,8 +313,8 @@ def add_games(update, context):
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
                                   parse_mode=telegram.ParseMode.HTML)
         return
-    if len(value_list) > var.USER_LIMIT:
-        logging.info(f'USER REQUEST {user_id}: user gave too many IDS{len(value_list)}')
+    if len(value_list) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
+        logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
                                   parse_mode=telegram.ParseMode.HTML)
         return      
@@ -339,12 +345,11 @@ def add_games(update, context):
     # filter out games that are already in the list
     game_ids = list(set(valid_game_ids+stored_game_ids))
     
-    if len(game_ids) > var.USER_LIMIT:
-        logging.info(f'USER REQUEST {user_id}: user gave too many IDS{len(value_list)}')
+    if len(game_ids) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
+        logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
                                   parse_mode=telegram.ParseMode.HTML)
         return   
-    
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
     # Store value
     context.bot_data[str(user_id)] = sorted(game_ids)
@@ -359,8 +364,7 @@ def add_games(update, context):
         
     update.message.reply_text(reply_text,
                               parse_mode=telegram.ParseMode.HTML)
-   
- 
+
 
 def jobqueue_error_handler(context, traceback, jobqueue):
         #report to the user
@@ -369,6 +373,7 @@ def jobqueue_error_handler(context, traceback, jobqueue):
         
         #notify adm
         PushNotif(context, traceback, f'Bug report: JobQueue {jobqueue}', -1)
+
 
 def error_handler(update, context):
     """Log the error and send a telegram message to notify the developer."""
@@ -381,7 +386,7 @@ def error_handler(update, context):
     tb = ''.join(tb_list)
     user_id = update.message.from_user.id
     # Build the message with some markup and additional information about what happ ened.
-    # You might need to add some logic to deal with messages longer than the 4096 character limit.
+    
     message = f"An exception was raised while handling an update\nUser ID: {str(user_id)}\n\n{tb}"
 
     # Finally, send the message
@@ -487,13 +492,3 @@ def main():
 if __name__ == '__main__':
     print("press CTRL + C to cancel.")
     main()
-    
-#FUNÇÃO USADA FUTURAMENTE PARA LER QRCODES
-# def gender(update, context):
-#     user = update.message.from_user
-#     logger.info("Gender of %s: %s", user.first_name, update.message.text)
-#     update.message.reply_text('I see! Please send me a photo of yourself, '
-#                               'so I know what you look like, or send /skip if you don\'t want to.',
-#                               reply_markup=ReplyKeyboardRemove())
-
-#     return PHOTO
