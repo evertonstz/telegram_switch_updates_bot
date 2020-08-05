@@ -31,6 +31,6 @@ TITLEDB = 'https://github.com/blawar/titledb'
 #Telegram
 TELEGRAM_DEBUG = True
 #Pushover https://pushover.net/
-PUSHOVER = True
+PUSHOVER_DEBUG = True
 #Notify run https://notify.run/
-NOTIFY_RUN = False 
+NOTIFYRUN_DEBUG = False 

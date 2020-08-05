@@ -26,7 +26,6 @@ import git
 import tswitch.variables as var
 
 ##FUNCTIONS##
-
 def create_folder(location):
     """function used to create folders in the file system"""
     try:
@@ -34,6 +33,7 @@ def create_folder(location):
         return True
     except:
         return False
+
 
 def is_git_repo(path):
     if isdir(path):
@@ -44,53 +44,7 @@ def is_git_repo(path):
             return False
     else:
         return False
-        
-# def AddToUserDB(root_folder, chat_id, ids_to_watch, operation):
-#     """function is used to intect with users' database"""
-#     db_folder = root_folder+"/database_users"
-#     user_db_folder = db_folder+"/"+chat_id
-#     user_db_file = user_db_folder+"/user_database.db"
-#     ids_to_watch = [x[:-3]+"000" for x in ids_to_watch]
-#     #creating folders
-#     create_folder(db_folder)
-#     create_folder(user_db_folder)
-#     print(1/0)
-#     logging.info(f'USER REQUEST {chat_id}: user databse interaction {operation}.')
 
-#     def AddtoDB(list_ids, table_name="Watched IDs"):
-#         """adds watched ids to user database based on his chat id"""
-#         with SqliteDict(user_db_file, autocommit=False) as database:
-#             if table_name not in database:
-#                 database[table_name] = []
-
-#             database_editable = database[table_name]
-
-#             #iterate of id list
-#             if operation == "add":
-#                 #add matches
-#                 for game_id in list_ids:
-#                     if game_id not in database_editable:
-#                         database_editable.append(game_id)
-#                         logging.info(f'USER REQUEST {chat_id}: watched {game_id}')
-#                     else:
-#                         logging.info(f'USER REQUEST {chat_id}: already watching {game_id}, skipping.')
-#             elif operation == "rm":
-#                 #remove matches
-#                 for game_id in list_ids:
-#                     if game_id in database_editable:
-#                         database_editable.remove(game_id)
-#                         logging.info(f'USER REQUEST {chat_id}: removed {game_id}')
-#                     else:       
-#                         logging.info(f'USER REQUEST {chat_id}: user not watching {game_id}, skipping.')
-#             elif operation == "list":
-#                 return(database_editable)
-#             #commit changes
-#             database[table_name] = database_editable
-#             database.commit()
-#             return True
-    
-#     res = AddtoDB(ids_to_watch)
-#     return res
 
 def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot file?
     """function is used to intect with database"""
@@ -148,7 +102,6 @@ def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot 
             
             return added_to_database
                 
-
     def VersionsToList(versions_text_string):
         return_list = []
 
@@ -164,7 +117,6 @@ def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot 
             except:
                 pass
         return return_list
-
 
     #create database foleder
     create_folder(db_folder)
@@ -202,6 +154,7 @@ def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot 
     
     #making database
     #if there's no db file yet, parse entire versions.txt file
+    #TODO don't notify users if it's first clone?
     result=[]
     if isfile(db_location) is False or rescan_db is True:
         #update entire database
@@ -222,7 +175,7 @@ def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot 
 
     #TODO after new file is cloned, parse it to the database (maibe use diff so there's no need to read the entire file)
 
-    #used by the bot to know if runing the check cicle for user is necessary or not
+    #result isused by the bot to know if runing the check cicle for user is necessary or not
     return result
 
 

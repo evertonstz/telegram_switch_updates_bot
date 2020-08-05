@@ -22,6 +22,7 @@ r - remove a game from your watching list
 l - show the games that are in your watch list
 stop - stop the bot and removes you from my database, YOUR WATCH LIST WILL BE DELETED!
 """
+#IMPORTS
 #optional dependencies
 try: 
     from notify_run import Notify
@@ -33,13 +34,21 @@ try:
 except ImportError: 
     Client = None
 
-# from pynps.cli import cli_main
+
 import traceback
 import logging
 from time import sleep
 from dotenv import load_dotenv
 import tswitch.variables as var
 from tswitch.functions import *
+
+# # external
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence
+import telegram
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 #importing env variables
 load_dotenv()
@@ -48,18 +57,26 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_ADM_CHATID = os.getenv("TELEGRAM_ADM_CHATID")
 PUSHHOVER_USERKEY = os.getenv("PUSHHOVER_USERKEY")
 PUSHOVER_APIKEY = os.getenv("PUSHOVER_APIKEY")
+UNLIMITED_USERS = os.getenv("UNLIMITED_USERS")
 
-# # external
-# import os, sys, inspect
+if TELEGRAM_ADM_CHATID in [None, '', ""] and var.TELEGRAM_DEBUG == True:
+    logging.info(f'ENV [telegram]: user asked for Telegram debugging but gave no chat ID')
+    var.TELEGRAM_DEBUG = False
+if PUSHHOVER_USERKEY in [None, '', ""] or Client == None or PUSHOVER_APIKEY in [None, '', ""] and var.P0USHOVER_DEBUG == True:
+    logging.info(f"ENV [pushover]: user asked for Pushover debugging but gave no user key/API key or do not have the 'python-pushover' package installed")
+    var.TELEGRAM_DEBUG = False
+if PUSHHOVER_USERKEY in [None, '', ""] or Client == None or PUSHOVER_APIKEY in [None, '', ""] and var.PUSHOVER_DEBUG == True:
+    logging.info(f"ENV [notify.run]: user asked for Notify.run debugging but do not have the 'notify-run' dpackage installed")
+    var.NOTIFYRUN_DEBUG = False
 
-from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence
-import telegram
+if UNLIMITED_USERS == None:
+    UNLIMITED_USERS = False
+elif UNLIMITED_USERS not in ['', ""]:
+    UNLIMITED_USERS = UNLIMITED_USERS.split(',')
+else:
+    UNLIMITED_USERS = False
 
-# Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-#functions
+#FUNCTIONS
 def PushNotif(context, text, title, priority):
     """send push notifications to the ADM for bug report purposes"""
     if text == '':
@@ -67,7 +84,7 @@ def PushNotif(context, text, title, priority):
     if title == '':
         title = "Telegram Switch watch bot bug report"
 
-    if var.PUSHOVER:
+    if var.PUSHOVER_DEBUG:
         try:
             logging.info(f'ERROR HANDLER [pushover]: trying to send push notification')
             client = Client(PUSHHOVER_USERKEY, 
@@ -79,7 +96,7 @@ def PushNotif(context, text, title, priority):
         except Exception as e:
             logging.info(f'ERROR HANDLER [pushover]: unable to send push notification {e}')
     
-    if var.NOTIFY_RUN:
+    if var.NOTIFYRUN_DEBUG:
         try:
             logging.info(f'ERROR HANDLER [notify.run]: trying to send push notification')
             notify = Notify()
