@@ -77,45 +77,110 @@ else:
     UNLIMITED_USERS = []
 
 #FUNCTIONS
-def PushNotif(context, text, title, priority):
-    # TODO add some logic to deal with messages longer than the 4096 character limit.
+def PushNotif(context, message, title, pushover_priority=-1):
     """send push notifications to the ADM for bug report purposes"""
-    if text == '':
-        text = 'unknown error'
-    if title == '':
-        title = "Telegram Switch watch bot bug report"
+    if message == '':
+        message = 'unknown error'
+    if message == '':
+        message = "Telegram Switch watch bot bug report"
 
     if var.PUSHOVER_DEBUG:
+        #pushover allows maximum 1024 characters on message and 250 on title
+        #detecting if message splitting is needed, split message in various payloads if needed
+        max_str_len = 1024
+        max_titlestr_len = 250
+        
+        message_list = []
+        if len(message) > max_str_len:
+            message_list = [message[i:i+max_str_len] for i in range(0, len(message), max_str_len)]
+        else:
+            message_list = [message]
+        
+        if len(title) + (len(message_list)*2 + 4) > max_titlestr_len:
+            rm_index = max_titlestr_len - (len(message_list)*2 + 4)
+            croped_title = title[:rm_index]
+        else:
+            croped_title = title
+            
+        #trying to notify
         try:
             logging.info(f'ERROR HANDLER [pushover]: trying to send push notification')
             client = Client(PUSHHOVER_USERKEY, 
                             api_token=PUSHOVER_APIKEY)
-            client.send_message(text, 
-                                title=title, 
-                                priority=priority)
+            
+            for index, croped_message in enumerate(message_list):
+                client.send_message(croped_message, 
+                                    title=f'{croped_title} [{index+1}/{len(message_list)}]', 
+                                    priority=pushover_priority)
+                sleep(1)
+                
             logging.info(f'ERROR HANDLER [pushover]: push notification sent')
         except Exception as e:
             logging.info(f'ERROR HANDLER [pushover]: unable to send push notification {e}')
     
     if var.NOTIFYRUN_DEBUG:
+        #it's not documented but with my tests notify.run limits messages to around 3900 characters, I'm setting the max to 3000 just to be on the safe side
+
+        #detecting if message splitting is needed, split message in various payloads if needed
+        max_titlestr_len = 250
+        max_str_len = 3000 - max_titlestr_len
+        
+        message_list = []
+        if len(message) > max_str_len:
+            message_list = [message[i:i+max_str_len] for i in range(0, len(message), max_str_len)]
+        else:
+            message_list = [message]
+        
+        if len(title) + (len(message_list)*2 + 5) > max_titlestr_len:
+            rm_index = max_titlestr_len - (len(message_list)*2 + 5)
+            croped_title = title[:rm_index]
+        else:
+            croped_title = title
+        
+        #trying to notify
         try:
             logging.info(f'ERROR HANDLER [notify.run]: trying to send push notification')
             notify = Notify()
-            notify.send(f'{title}\n{text}')
+            # notify.send(f'{title}\n{message}')
+            for index, croped_message in enumerate(message_list):
+                notify.send(f'{croped_title} [{index+1}/{len(message_list)}]\n{croped_message}')
+            
             logging.info(f'ERROR HANDLER [notify.run]: push notification sent')
         except Exception as e:
             logging.info(f'ERROR HANDLER [notify.run]: unable to send push notification {e}')
     
     if var.TELEGRAM_DEBUG:
+        #telegram limits a max 4096 characters per message
+        
+        #detecting if message splitting is needed, split message in various payloads if needed
+        max_titlestr_len = 250
+        max_str_len = 4096 - max_titlestr_len
+        
+        message_list = []
+        if len(message) > max_str_len:
+            message_list = [message[i:i+max_str_len] for i in range(0, len(message), max_str_len)]
+        else:
+            message_list = [message]
+        
+        if len(title) + (len(message_list)*2 + 27) > max_titlestr_len:
+            rm_index = max_titlestr_len - (len(message_list)*2 + 27)
+            croped_title = title[:rm_index]
+        else:
+            croped_title = title
+        
+        #trying to notify
         try:
             logging.info(f'ERROR HANDLER [telegram]: trying to send push notification')
-            try:
-                context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
-                                        text=f"<b>🔴{title}</b>\n<code>{text}</code>",
-                                        parse_mode=telegram.ParseMode.HTML)
-            except:
-                context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
-                                        text=f"🔴{title}\n{text}")
+            for index, croped_message in enumerate(message_list):
+                # notify.send(f'<b>🔴{croped_title} [{index+1}/{len(message_list)}]</b> \n{croped_message}')
+                try:
+                    context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
+                                            text=f"<b>🔴{croped_title} [{index+1}/{len(message_list)}]</b>\n<code>{croped_message}</code>",
+                                            parse_mode=telegram.ParseMode.HTML)
+                except:
+                    pass
+                    context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
+                                            text=f"🔴{croped_title} [{index+1}/{len(message_list)}]\n\n{croped_message}")
                 
             logging.info(f'ERROR HANDLER [telegram]: push notification sent')
         except Exception as e:
@@ -179,15 +244,7 @@ def stop(update, context):
 
 def start(update, context):
     #TODO make user options here, including exit and delete options
-    response_message = "Hi! This bot is still alpha and is kinda barebones and bugs are kinds expected. It checks every hour for new updates and every day for new titles in titleDB\n\n<b>What it can do:</b>\n➕Subscribe to any valid Game ID provided by the user\n➕Notify the user when any of his games in the watching list gets an update\
-                        \n\n<b>To be implemented:</b>\n➖Receive full game metadata (for now, you can only see the game and update IDs when the bot notifies you about a new update) \
-                        \n\n<b>Commands:</b> \
-                        \n/a - add a game to your watching list, games can only be added by their GAME ID, multiple IDs must to be separated by a space \
-                        \n\n/r - remove a game from your watching list, games can only be removed by their GAME ID, multiple IDs must to be separated by a space \
-                        \n\n/l - show the games that are in your watch list \
-                        \n\n/stop - stop the bot and removes you from my database, <b>YOUR WATCH LIST WILL BE DELETED!</b> If you ever come back you'll need to reenter your Game IDs \
-                        \n\n\n<i>PSA: The bot should be able to notify me automatically for most bugs and erros, but feel free to contact me at:\nTelegram: @evertonstz \nDiscord: Identify as chinese#6975</i>"
-    update.message.reply_text(response_message,
+    update.message.reply_text(var.START_MESSAGE,
                               parse_mode=telegram.ParseMode.HTML)
 
 
