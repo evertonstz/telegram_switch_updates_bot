@@ -127,6 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+titledb/*
 database/*
 nx-versions/*
 test.py

@@ -216,7 +216,7 @@ def unknown(update, context):
     response_message = "Unknown command..."
     update.message.reply_text(response_message)
 
-
+    
 def stop(update, context):
     """used to remove user from database, can only be toggled by user request"""
     user_id = update.message.from_user.id
@@ -458,10 +458,28 @@ def error_handler(update, context):
         logging.info(f'ERROR HANDLER: failed to message the user: {e}')
 
 #job queues
+def callback_titledb(context: telegram.ext.CallbackContext):
+    """this is the callack for titledb's job queue"""
+    
+    logging.info('JobQueue [titledb]: start')
+    result = False
+    try:
+        result = UpdateTitleDB(f"{get_script_dir()}/database", f"{get_script_dir()}/titledb")
+    except:
+        jobqueue_error_handler(context, traceback.format_exc(), 'titledb -> callback_titledb -> UpdateTitleDB')
+
+    if result:
+        logging.info('JobQueue [titledb]: titledb updated')
+    else:
+        logging.info('JobQueue [titledb]: titledb not updated') 
+    
+    logging.info('JobQueue [titledb]: end') 
+    
+ 
 def callback_nxversions(context: telegram.ext.CallbackContext):
     """this is the callack for xnversios's job queue"""
     
-    logging.info(f'JobQueue [nx-versions]: start')
+    logging.info('JobQueue [nx-versions]: start')
     result = []
     users_to_notify = {}
     try:
@@ -477,6 +495,8 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
         logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify - Notification Dict {users_to_notify}')
 
         if len(users_to_notify) > 0:
+            #this means there are users to be notified, load titledb to get information
+            titledb = LoadTitleDB(f"{get_script_dir()}/database")
             for user_id in users_to_notify:
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                 reply_msg = '📺<b>New updates available</b>\n'
@@ -540,12 +560,12 @@ def main():
     # add JobQueue for nx-versions and titledb
     #TODO add JobQueue for titledb
     job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    # job_nxversions = job.run_repeating(callback_nxversions, interval=30, first=0)
+    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
     updater.idle()
 
 if __name__ == '__main__':
-    print("press CTRL + C to cancel.")
+    print("press CTRL + C to cancel.") 
     main()

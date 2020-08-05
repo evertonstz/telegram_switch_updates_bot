@@ -18,6 +18,7 @@ import inspect
 import shutil
 import logging
 import pickle
+from json import load
 from os.path import isfile, isdir
 
 from sqlitedict import SqliteDict
@@ -45,14 +46,90 @@ def is_git_repo(path):
     else:
         return False
 
+def LoadTitleDB(db_folder, table_name='titledb'):
+    """load titledb from SqliteDict"""
+    db_location = f"{db_folder}/titledb_database.db"
+    db = {}
+    with SqliteDict(db_location, autocommit=False) as database:
+        db = database[table_name]
+    
+    return(db)
+        
 
-def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot file?
-    """function is used to intect with database"""
+
+def UpdateTitleDB(db_folder, repo_folder):
+    """function is used to build and interact with titledb database
+    it's suposed to run every day, but the interval can be tweaked at variables.py"""
+    db_location = f"{db_folder}/titledb_database.db"
+    repo_file = f'{repo_folder}/titles.US.en.json'
+    logging.info(f'UPDATE TITLEDB: job started!')
+
+    def ReplaceDB(table_name='titledb'):
+        #TODO add option to change language
+        """adds a the list of dirs to the current database
+        """
+        #load json file
+        with open(f'{repo_folder}/titles.US.en.json') as file:
+            titledb_json = load(file)
+        
+        with SqliteDict(db_location, autocommit=False) as database:
+            #just replace old db with the new one
+            database[table_name] = titledb_json
+            database.commit()
+            return True
+
+    #create database foleder
+    create_folder(db_folder)
+
+    #TODO use git to check for titledb updates, keep in mind this function will run every day
+    #check if titledb repository is present, if not, clone it
+    rescan_db = False
+    if isfile(repo_file) is False or is_git_repo(repo_folder) is False or isdir(repo_folder) is False:
+        #remove broken folder
+        try:
+            shutil.rmtree(repo_folder)
+        except:
+            pass
+        
+        logging.info(f'UPDATE TITLEDB [GIT]: cloning titledb to {repo_folder}')
+        git.Repo.clone_from(var.TITLEDB, repo_folder)
+        logging.info(f'UPDATE TITLEDB [GIT]: cloned')
+        rescan_db = True
+    
+    #check if present repository is behind master
+    repo = git.Repo(repo_folder)
+    repo.remotes.origin.fetch() 
+    commits_behind = len(list(repo.iter_commits('master..origin/master')))
+    
+    
+    if commits_behind != 0:
+        #means it's behind, pull from remote
+        logging.info(f"UPDATE TITLEDB [GIT]: changes on titledb's remote detected, pulling changes!")
+        repo.remotes.origin.pull()
+        rescan_db = True
+    else:
+        logging.info(f"UPDATE TITLEDB [GIT]: no changes on titledb's remote detected.")
+
+    
+    #making database
+    #it'll parse the entire titledb_database.db every time a update is detected
+    result = False
+    if isfile(db_location) is False or rescan_db is True:
+        #update entire database
+        logging.info(f'UPDATE TITLEDB: adding titledb to SqliteDict')
+        ReplaceDB()
+        result = True
+        
+    return result
+
+
+def UpdateNxversiosDB(db_folder, repo_folder): #TODO break away from bot file?
+    """function is used to build and interact with nx-versions database
+    it's suposed to run every hour, but the interval can be tweaked at variables.py"""
 
     db_location = f"{db_folder}/versions_database.db"
     
     logging.info(f'UPDATE VERSIONS: job started!')
-    # TODO get metadata fro titledb https://github.com/blawar/titledb
     
     # functions
     def AddtoDB(list_versions, table_name='versions'):
@@ -124,21 +201,21 @@ def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot 
     #TODO use git to check nx-updates for updates, keep in mind this function will run every hour or so
     #check if nx-versions repository is present, if not, clone it
     rescan_db = False
-    if isfile(nx_versions_folder+"/versions.txt") is False or is_git_repo(nx_versions_folder) is False or isdir(nx_versions_folder) is False:
+    if isfile(repo_folder+"/versions.txt") is False or is_git_repo(repo_folder) is False or isdir(repo_folder) is False:
         #remove broken folder
         try:
-            shutil.rmtree(nx_versions_folder)
+            shutil.rmtree(repo_folder)
         except:
             pass
         
-        logging.info(f"Cloning nx-versions to: {nx_versions_folder}")
-        logging.info(f'UPDATE VERSIONS [GIT]: cloning nx-versions to {nx_versions_folder}')
+        logging.info(f'UPDATE VERSIONS [GIT]: cloning nx-versions to {repo_folder}')
         
-        git.Repo.clone_from(var.NXVERSION, nx_versions_folder)
+        git.Repo.clone_from(var.NXVERSION, repo_folder)
+        logging.info(f'UPDATE VERSIONS [GIT]: cloned')
         rescan_db = True
     
     #check if present repository is behind master
-    repo = git.Repo(nx_versions_folder)
+    repo = git.Repo(repo_folder)
     repo.remotes.origin.fetch() 
     commits_behind = len(list(repo.iter_commits('master..origin/master')))
     
@@ -159,17 +236,17 @@ def UpdateNxversiosDB(db_folder, nx_versions_folder): #TODO break away from bot 
     if isfile(db_location) is False or rescan_db is True:
         #update entire database
         nx_versions_file = False
-        if isfile(nx_versions_folder+"/versions.txt") is True:
-            with open(nx_versions_folder+"/versions.txt", 'r') as file:
+        if isfile(repo_folder+"/versions.txt") is True:
+            with open(repo_folder+"/versions.txt", 'r') as file:
                 nx_versions_file = file.read()
 
             if nx_versions_file is not False:
                 result = AddtoDB(VersionsToList(nx_versions_file))
                 logging.info(f'UPDATE VERSIONS: {len(result)} updates found in this run')
             else:
-                logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {nx_versions_folder+"/versions.txt"}')
+                logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
         else:
-            logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {nx_versions_folder+"/versions.txt"}')
+            logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
 
     #TODO if there are new updates, copy versions.txt to old_versions.txt, clone the new versions.txt
 
