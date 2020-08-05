@@ -247,6 +247,20 @@ def start(update, context):
     update.message.reply_text(var.START_MESSAGE,
                               parse_mode=telegram.ParseMode.HTML)
 
+# def broadcast(update, context):
+#     """broadcast message to every user"""
+#     user_id = update.message.from_user.id
+#     #only run if chat id is adm
+#     if str(user_id) == TELEGRAM_ADM_CHATID:
+#         value = update.message.text.partition(' ')[2]
+#         # Load chat values
+#         try:
+#             stored_game_ids = sorted(context.bot_data[str(user_id)])
+#         except KeyError:
+#             stored_game_ids = []
+        
+#         print(context.bot_data, value)   
+    
 
 def list_watched(update, context):
     """used to return the current watch list to the user"""
@@ -482,12 +496,12 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
     logging.info('JobQueue [nx-versions]: start')
     result = []
     users_to_notify = {}
-    try:
-        result = UpdateNxversiosDB(f"{get_script_dir()}/database", f"{get_script_dir()}/nx-versions")
-    except:
-        jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
+    # try:
+    #     result = UpdateNxversiosDB(f"{get_script_dir()}/database", f"{get_script_dir()}/nx-versions")
+    # except:
+    #     jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
-    # result = [{'Base ID': '0100000000010000', 'Update Name': '0100000000010800', 'Update ID': '26214050'}, {'Base ID': '010000000EEF0000', 'Update Name': '010000000EEF0800', 'Update ID': '6553304050'}, {'Base ID': '010000100C4B8000', 'Update Name': '010000100C4B8800', 'Update ID': '19660304050'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
+    result = [{'Base ID': '010001000F2E3000', 'Update Name': '0100000000010800', 'Update ID': '26214050'}, {'Base ID': '010000000EEF0000', 'Update Name': '010000000EEF0800', 'Update ID': '6553304050'}, {'Base ID': '010000100C4B8000', 'Update Name': '010000100C4B8800', 'Update ID': '19660304050'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling NotifyUsersUpdate')
@@ -500,10 +514,23 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
             for user_id in users_to_notify:
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                 reply_msg = '📺<b>New updates available</b>\n'
-                for i in users_to_notify[user_id]:
+                for index, i in enumerate(users_to_notify[user_id]):
                     # print(i)
                     logging.info(f'JobQueue [nx-versions]: Userdd ID {user_id} - Update: {i}')
-                    reply_msg += f"<b>Base ID: {i['Base ID']}</b>\nUpdate ID: {i['Update Name']}\nLatest version: v{i['Update ID']}\n\n"
+                    #making variables
+                    base_id = i['Base ID']
+                    
+                    try:
+                        game_name = titledb[base_id]['name']
+                    except KeyError:
+                        game_name = 'UNKNOWN TITLE'
+                        
+                    # game_publisher = titledb[base_id]['publisher']
+                    game_update_id = i['Update Name']
+                    game_update_version = i['Update ID']
+                    if index > 0:
+                        reply_msg += '\n\n'
+                    reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{base_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
                 
                 sleep(2) #time between each user notification to avoid hitting API limits                 
                 context.bot.send_message(chat_id=int(user_id), 
@@ -527,9 +554,15 @@ def main():
     
     #start command
     #TODO respond with a help text
+    #TODO implement broadcast for adms
+    # dispatcher.add_handler(
+    #     CommandHandler('broad', broadcast)
+    # )
+    
     dispatcher.add_handler(
         CommandHandler('start', start)
     )
+    
     dispatcher.add_handler(
         CommandHandler('stop', stop)
     )
