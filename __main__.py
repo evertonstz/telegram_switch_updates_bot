@@ -496,12 +496,12 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
     logging.info('JobQueue [nx-versions]: start')
     result = []
     users_to_notify = {}
-    # try:
-    #     result = UpdateNxversiosDB(f"{get_script_dir()}/database", f"{get_script_dir()}/nx-versions")
-    # except:
-    #     jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
+    try:
+        result = UpdateNxversiosDB(f"{get_script_dir()}/database", f"{get_script_dir()}/nx-versions")
+    except:
+        jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
-    result = [{'Base ID': '010001000F2E3000', 'Update Name': '0100000000010800', 'Update ID': '26214050'}, {'Base ID': '010000000EEF0000', 'Update Name': '010000000EEF0800', 'Update ID': '6553304050'}, {'Base ID': '010000100C4B8000', 'Update Name': '010000100C4B8800', 'Update ID': '19660304050'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
+    # result = [{'Base ID': '010001000F2E3000', 'Update Name': '0100000000010800', 'Update ID': '26214050'}, {'Base ID': '010000000EEF0000', 'Update Name': '010000000EEF0800', 'Update ID': '6553304050'}, {'Base ID': '010000100C4B8000', 'Update Name': '010000100C4B8800', 'Update ID': '19660304050'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling NotifyUsersUpdate')
