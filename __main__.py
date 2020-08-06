@@ -43,8 +43,9 @@ import tswitch.variables as var
 from tswitch.functions import *
 
 # # external
-from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence
-import telegram
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence, CallbackContext
+from telegram import ParseMode, Update
+# import telegram
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
@@ -77,7 +78,7 @@ else:
     UNLIMITED_USERS = []
 
 #FUNCTIONS
-def PushNotif(context, message, title, pushover_priority=-1):
+def PushNotif(context: CallbackContext, message: str, title: str, pushover_priority=-1):
     """send push notifications to the ADM for bug report purposes"""
     if message == '':
         message = 'unknown error'
@@ -176,7 +177,7 @@ def PushNotif(context, message, title, pushover_priority=-1):
                 try:
                     context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
                                             text=f"<b>🔴{croped_title} [{index+1}/{len(message_list)}]</b>\n<code>{croped_message}</code>",
-                                            parse_mode=telegram.ParseMode.HTML)
+                                            parse_mode=ParseMode.HTML)
                 except:
                     pass
                     context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
@@ -210,14 +211,21 @@ def get_script_dir(follow_symlinks=True):
         path = os.path.realpath(path)
     return os.path.dirname(path)
 
+def get_bot_data(context: CallbackContext):
+    try:
+        bot_data_dict = context.bot_data
+    except KeyError:
+        bot_data_dict = {}
+        
+    return bot_data_dict
 
 #telegram functions
-def unknown(update, context):
+def unknown(update: Update, context: CallbackContext):
     response_message = "Unknown command..."
     update.message.reply_text(response_message)
 
     
-def stop(update, context):
+def stop(update: Update, context: CallbackContext):
     """used to remove user from database, can only be toggled by user request"""
     user_id = update.message.from_user.id
     key = "Watched IDs"
@@ -226,7 +234,7 @@ def stop(update, context):
     #printing results
     if len(value_list) == 0:
         update.message.reply_text("<b>ATENTION! Ths will delete your current watch list and stop the bot!</b>\nIf that's what you want, send the bot this:\n<code>/stop yes</code>", 
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
     else:
         if value_list[0] == 'yes':
             logging.info(f'USER REQUEST {user_id}: user requested to be removed from database.')
@@ -239,15 +247,15 @@ def stop(update, context):
                 
             logging.info(f'USER REQUEST {user_id}: user removed from database.')
             update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
 
 
-def start(update, context):
+def start(update: Update, context: CallbackContext):
     #TODO make user options here, including exit and delete options
     update.message.reply_text(var.START_MESSAGE,
-                              parse_mode=telegram.ParseMode.HTML)
+                              parse_mode=ParseMode.HTML)
 
-# def broadcast(update, context):
+# def broadcast(update: Update, context: CallbackContext):
 #     """broadcast message to every user"""
 #     user_id = update.message.from_user.id
 #     #only run if chat id is adm
@@ -262,17 +270,14 @@ def start(update, context):
 #         print(context.bot_data, value)   
     
 
-def list_watched(update, context):
+def list_watched(update: Update, context: CallbackContext):
     """used to return the current watch list to the user"""
     user_id = update.message.from_user.id
     key = "Watched IDs"
     value = update.message.text.partition(' ')[2]
 
     # Load old values
-    try:
-        stored_game_ids = sorted(context.bot_data[str(user_id)])
-    except KeyError:
-        stored_game_ids = []
+    stored_game_ids = get_bot_data(context)[str(user_id)]
     
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
 
@@ -290,10 +295,10 @@ def list_watched(update, context):
         reply_text += "\n\n<i>PSA: You provided arguments to /l and this is not needed, so next time just use /l</i>"
     
     update.message.reply_text(reply_text,
-                              parse_mode=telegram.ParseMode.HTML)
+                              parse_mode=ParseMode.HTML)
 
                                 
-def rm_games(update, context):
+def rm_games(update: Update, context: CallbackContext):
     """used to remove games from users watch list"""
     user_id = update.message.from_user.id
     key = "Watched IDs"
@@ -313,12 +318,12 @@ def rm_games(update, context):
     if len(value_list) == 0:
         logging.info(f'USER REQUEST {user_id}: user called /r but provided no arguments.')
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
         return
     if len(value_list) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can remove {var.USER_LIMIT} IDs per operation.",
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
         return      
     
     
@@ -332,10 +337,7 @@ def rm_games(update, context):
         reply_dict[i] = '🟠Not on watch list'
     
     # Load old values
-    try:
-        stored_game_ids = context.bot_data[str(user_id)]
-    except KeyError:
-        stored_game_ids = []
+    stored_game_ids = get_bot_data(context)[str(user_id)]
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -347,7 +349,7 @@ def rm_games(update, context):
     # filter out games that are already in the list
     game_ids = list(set(stored_game_ids)-set(valid_game_ids))
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
-    # Store value
+    # Store dicts on bot_data
     context.bot_data[str(user_id)] = sorted(game_ids)
 
     #making reply string
@@ -359,10 +361,10 @@ def rm_games(update, context):
         reply_text += "\n\n<i>You won't be getting notifications for</i> 🟢 <i>anymore!</i>"
     
     update.message.reply_text(reply_text,
-                            parse_mode=telegram.ParseMode.HTML)
+                            parse_mode=ParseMode.HTML)
 
 
-def add_games(update, context):
+def add_games(update: Update, context: CallbackContext):
     """used to add games to user database, calls for AddToUserDB()"""
     user_id = update.message.from_user.id
     key = "Watched IDs"
@@ -382,12 +384,12 @@ def add_games(update, context):
     if len(value_list) == 0:
         logging.info(f'USER REQUEST {user_id}: user called /a but provided no arguments.')
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
         return
     if len(value_list) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
         return      
     
     
@@ -401,10 +403,7 @@ def add_games(update, context):
         reply_dict[i] = '🟢Added on watch list'
     
     # Load old values
-    try:
-        stored_game_ids = context.bot_data[str(user_id)]
-    except KeyError:
-        stored_game_ids = []
+    stored_game_ids = get_bot_data(context)[str(user_id)]
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -419,10 +418,10 @@ def add_games(update, context):
     if len(game_ids) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
-                                  parse_mode=telegram.ParseMode.HTML)
+                                  parse_mode=ParseMode.HTML)
         return   
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
-    # Store value
+    # Store dicts on bot_data
     context.bot_data[str(user_id)] = sorted(game_ids)
 
     #making reply string
@@ -434,19 +433,19 @@ def add_games(update, context):
         reply_text += "\n\n<i>I'll let you know when</i> 🟢 <i>get new updates!</i>"
         
     update.message.reply_text(reply_text,
-                              parse_mode=telegram.ParseMode.HTML)
+                              parse_mode=ParseMode.HTML)
 
 
-def jobqueue_error_handler(context, traceback, jobqueue):
+def jobqueue_error_handler(context: CallbackContext, traceback: str, log_msg: str):
         #report to the user
         # bot.send_message(chat_id=chat_id, text="Oops, something went wrong around here. I reported this incident to the developer and he'll look into the problem soon!")
-        logger.error(msg="Exception while handling an jobqueue update:", exc_info=traceback)
+        logger.error(msg=log_msg, exc_info=traceback)
         
         #notify adm
-        PushNotif(context, traceback, f'Bug report: JobQueue {jobqueue}', -1)
+        PushNotif(context, traceback, f'Bug report: JobQueue {log_msg}', -1)
 
 
-def error_handler(update, context):
+def error_handler(update: Update, context: CallbackContext):
     """Log the error and send a telegram message to notify the developer."""
     # Log the error before we do anything else, so we can see it even if something breaks.
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
@@ -472,7 +471,7 @@ def error_handler(update, context):
         logging.info(f'ERROR HANDLER: failed to message the user: {e}')
 
 #job queues
-def callback_titledb(context: telegram.ext.CallbackContext):
+def callback_titledb(context: CallbackContext):
     """this is the callack for titledb's job queue"""
     
     logging.info('JobQueue [titledb]: start')
@@ -490,7 +489,7 @@ def callback_titledb(context: telegram.ext.CallbackContext):
     logging.info('JobQueue [titledb]: end') 
     
  
-def callback_nxversions(context: telegram.ext.CallbackContext):
+def callback_nxversions(context: CallbackContext):
     """this is the callack for xnversios's job queue"""
     
     logging.info('JobQueue [nx-versions]: start')
@@ -505,7 +504,7 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling NotifyUsersUpdate')
-        users_to_notify = NotifyUsersUpdate(result, context.bot_data)
+        users_to_notify = NotifyUsersUpdate(result, get_bot_data(context))
         logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify - Notification Dict {users_to_notify}')
 
         if len(users_to_notify) > 0:
@@ -515,7 +514,6 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                 reply_msg = '📺<b>New updates available</b>\n'
                 for index, i in enumerate(users_to_notify[user_id]):
-                    # print(i)
                     logging.info(f'JobQueue [nx-versions]: Userdd ID {user_id} - Update: {i}')
                     #making variables
                     base_id = i['Base ID']
@@ -535,7 +533,7 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
                 sleep(2) #time between each user notification to avoid hitting API limits                 
                 context.bot.send_message(chat_id=int(user_id), 
                                         text=reply_msg,
-                                        parse_mode=telegram.ParseMode.HTML)
+                                        parse_mode=ParseMode.HTML)
                                         
                 logging.info(f'JobQueue [nx-versions]: notified {user_id}')
     
@@ -569,6 +567,7 @@ def main():
 
 
     #add, remove and list games to user database
+    #TODO add handler to return information to the adm about number of users and database sizes and stats
     dispatcher.add_handler(
         CommandHandler('a', add_games)
     )

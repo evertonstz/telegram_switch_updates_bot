@@ -57,7 +57,6 @@ def LoadTitleDB(db_folder, table_name='titledb'):
     return(db)
         
 
-
 def UpdateTitleDB(db_folder, repo_folder):
     """function is used to build and interact with titledb database
     it's suposed to run every day, but the interval can be tweaked at variables.py"""
