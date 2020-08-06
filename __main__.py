@@ -530,7 +530,7 @@ def callback_nxversions(context: telegram.ext.CallbackContext):
                     game_update_version = i['Update ID']
                     if index > 0:
                         reply_msg += '\n\n'
-                    reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{base_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
+                    reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{game_update_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
                 
                 sleep(2) #time between each user notification to avoid hitting API limits                 
                 context.bot.send_message(chat_id=int(user_id), 
