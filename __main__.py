@@ -216,8 +216,24 @@ def get_bot_data(context: CallbackContext):
         bot_data_dict = context.bot_data
     except KeyError:
         bot_data_dict = {}
-        
     return bot_data_dict
+
+def get_user_id(update: Update):
+    """get user id from update"""
+    user_id = str(update.message.from_user.id)      
+    return user_id
+
+def parse_args_from_value(value):
+    """parse arguments from value"""
+    #TODO more test is needed, maybe look for these IDs in the database to confirm a game exist
+    value = value.partition(' ')[2].replace('\n',' ')
+    value_list = []
+    for i in [x for x in value.split(' ') if x != '']:
+        if len(i) == 16 and i.endswith('800'):
+            value_list.append(f'{i[:-3]}000')
+        else:
+             value_list.append(i)
+    return value_list
 
 #telegram functions
 def unknown(update: Update, context: CallbackContext):
@@ -227,8 +243,8 @@ def unknown(update: Update, context: CallbackContext):
     
 def stop(update: Update, context: CallbackContext):
     """used to remove user from database, can only be toggled by user request"""
-    user_id = update.message.from_user.id
-    key = "Watched IDs"
+    user_id = get_user_id(update)
+    
     value = update.message.text.partition(' ')[2]
     value_list = [x for x in value.split(' ') if x != '']
     #printing results
@@ -241,7 +257,7 @@ def stop(update: Update, context: CallbackContext):
             
             # blacking user's dictionary
             try:
-                context.bot_data.pop(str(user_id))
+                context.bot_data.pop(user_id)
             except KeyError:
                 pass
                 
@@ -257,27 +273,21 @@ def start(update: Update, context: CallbackContext):
 
 # def broadcast(update: Update, context: CallbackContext):
 #     """broadcast message to every user"""
-#     user_id = update.message.from_user.id
+#     user_id = get_user_id(update)
 #     #only run if chat id is adm
-#     if str(user_id) == TELEGRAM_ADM_CHATID:
+#     if user_id == TELEGRAM_ADM_CHATID:
 #         value = update.message.text.partition(' ')[2]
 #         # Load chat values
-#         try:
-#             stored_game_ids = sorted(context.bot_data[str(user_id)])
-#         except KeyError:
-#             stored_game_ids = []
+#         stored_game_ids = get_bot_data(context)[user_id]
         
-#         print(context.bot_data, value)   
-    
 
 def list_watched(update: Update, context: CallbackContext):
     """used to return the current watch list to the user"""
-    user_id = update.message.from_user.id
-    key = "Watched IDs"
+    user_id = get_user_id(update)
     value = update.message.text.partition(' ')[2]
 
     # Load old values
-    stored_game_ids = get_bot_data(context)[str(user_id)]
+    stored_game_ids = get_bot_data(context)[user_id]
     
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
 
@@ -285,7 +295,7 @@ def list_watched(update: Update, context: CallbackContext):
     if len(stored_game_ids) > 0:
         reply_text = f"📺<b>The following game IDs are in your watch list</b>"
         for i in stored_game_ids:
-            reply_text += f"\n{i}"
+            reply_text += f"\n<code>{i}</code>"
     else:
         logging.info(f'USER REQUEST {user_id}: user have no games in his watching list.')
         reply_text = f"📺<b>No games found</b>\nSeems like you didn't add any games to your watch list, try adding them with the /a command"
@@ -297,22 +307,14 @@ def list_watched(update: Update, context: CallbackContext):
     update.message.reply_text(reply_text,
                               parse_mode=ParseMode.HTML)
 
-                                
+                               
 def rm_games(update: Update, context: CallbackContext):
     """used to remove games from users watch list"""
-    user_id = update.message.from_user.id
-    key = "Watched IDs"
-    value = update.message.text.partition(' ')[2].replace('\n',' ')
+    user_id = get_user_id(update)
 
     #filter the user values for possible valid game IDs
-    #TODO more test is needed, maybe look for these IDs in the database to confirm a game exist
-    value_list = []
-    for i in [x for x in value.split(' ') if x != '']:
-        if len(i) == 16 and i.endswith('800'):
-            value_list.append(f'{i[:-3]}000')
-        else:
-             value_list.append(i)
-             
+    value_list = parse_args_from_value(update.message.text)
+    
     logging.info(f'USER REQUEST {user_id}: user databse interaction: rm_games, provided IDs {value_list}.')
     
     if len(value_list) == 0:
@@ -320,7 +322,7 @@ def rm_games(update: Update, context: CallbackContext):
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
                                   parse_mode=ParseMode.HTML)
         return
-    if len(value_list) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
+    if len(value_list) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can remove {var.USER_LIMIT} IDs per operation.",
                                   parse_mode=ParseMode.HTML)
@@ -337,7 +339,7 @@ def rm_games(update: Update, context: CallbackContext):
         reply_dict[i] = '🟠Not on watch list'
     
     # Load old values
-    stored_game_ids = get_bot_data(context)[str(user_id)]
+    stored_game_ids = get_bot_data(context)[user_id]
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -350,12 +352,12 @@ def rm_games(update: Update, context: CallbackContext):
     game_ids = list(set(stored_game_ids)-set(valid_game_ids))
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
     # Store dicts on bot_data
-    context.bot_data[str(user_id)] = sorted(game_ids)
+    context.bot_data[user_id] = sorted(game_ids)
 
     #making reply string
     reply_text = '📺<b>The following procedures were made</b>'
     for i in reply_dict:
-        reply_text += f"\n{reply_dict[i]}: {i}"
+        reply_text += f"\n{reply_dict[i]}: <code>{i}</code>"
         
     if 'Removed from watch list' in reply_text:
         reply_text += "\n\n<i>You won't be getting notifications for</i> 🟢 <i>anymore!</i>"
@@ -366,18 +368,10 @@ def rm_games(update: Update, context: CallbackContext):
 
 def add_games(update: Update, context: CallbackContext):
     """used to add games to user database, calls for AddToUserDB()"""
-    user_id = update.message.from_user.id
-    key = "Watched IDs"
-    value = update.message.text.partition(' ')[2].replace('\n',' ')
+    user_id = get_user_id(update)
 
     #filter the user values for possible valid game IDs
-    #TODO more test is needed, maybe look for these IDs in the database to confirm a game exist
-    value_list = []
-    for i in [x for x in value.split(' ') if x != '']:
-        if len(i) == 16 and i.endswith('800'):
-            value_list.append(f'{i[:-3]}000')
-        else:
-            value_list.append(i)
+    value_list = parse_args_from_value(update.message.text)
              
     logging.info(f'USER REQUEST {user_id}: user databse interaction: add_games, provided IDs {value_list}.')
     
@@ -386,7 +380,7 @@ def add_games(update: Update, context: CallbackContext):
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
                                   parse_mode=ParseMode.HTML)
         return
-    if len(value_list) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
+    if len(value_list) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
                                   parse_mode=ParseMode.HTML)
@@ -403,7 +397,7 @@ def add_games(update: Update, context: CallbackContext):
         reply_dict[i] = '🟢Added on watch list'
     
     # Load old values
-    stored_game_ids = get_bot_data(context)[str(user_id)]
+    stored_game_ids = get_bot_data(context)[user_id]
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -415,19 +409,19 @@ def add_games(update: Update, context: CallbackContext):
     # filter out games that are already in the list
     game_ids = list(set(valid_game_ids+stored_game_ids))
     
-    if len(game_ids) > var.USER_LIMIT and str(user_id ) not in UNLIMITED_USERS:
+    if len(game_ids) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
                                   parse_mode=ParseMode.HTML)
         return   
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
     # Store dicts on bot_data
-    context.bot_data[str(user_id)] = sorted(game_ids)
+    context.bot_data[user_id] = sorted(game_ids)
 
     #making reply string
     reply_text = '📺<b>The following procedures were made</b>'
     for i in reply_dict:
-        reply_text += f"\n{reply_dict[i]}: {i}"
+        reply_text += f"\n{reply_dict[i]}: <code>{i}</code>"
     
     if 'Added on watch list' in reply_text:
         reply_text += "\n\n<i>I'll let you know when</i> 🟢 <i>get new updates!</i>"
@@ -454,17 +448,17 @@ def error_handler(update: Update, context: CallbackContext):
     # list of strings rather than a single string, so we have to join them together.
     tb_list = traceback.format_exception(None, context.error, context.error.__traceback__)
     tb = ''.join(tb_list)
-    user_id = update.message.from_user.id
+    user_id = get_user_id(update)
     # Build the message with some markup and additional information about what happ ened.
     
-    message = f"An exception was raised while handling an update\nUser ID: {str(user_id)}\n\n{tb}"
+    message = f"An exception was raised while handling an update\nUser ID: {user_id}\n\n{tb}"
 
     # Finally, send the message
     PushNotif(context, message, 'Bug report', -1)
     
     # leting the user know
     try:
-        if str(user_id) != TELEGRAM_ADM_CHATID:
+        if user_id != TELEGRAM_ADM_CHATID:
             context.bot.send_message(chat_id=user_id, text="Oopsie, something went wrong on my side, I've reported the problem to my owner and he'll deal with it as soon as possible.")
             logging.info(f'ERROR HANDLER: letting the user know there was a problem')
     except Exception as e:
