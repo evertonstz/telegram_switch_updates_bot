@@ -50,8 +50,9 @@ def LoadTitleDB(db_folder, table_name='titledb'):
     """load titledb from SqliteDict"""
     db_location = f"{db_folder}/titledb_database.db"
     db = {}
-    with SqliteDict(db_location, autocommit=False) as database:
-        db = database[table_name]
+    if isfile(db_location):
+        with SqliteDict(db_location, autocommit=False) as database:
+            db = database[table_name]
     
     return(db)
         
