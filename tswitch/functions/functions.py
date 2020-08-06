@@ -18,13 +18,26 @@ import inspect
 import shutil
 import logging
 import pickle
+import distutils
 from json import load
 from os.path import isfile, isdir
+from distutils import util
 
 from sqlitedict import SqliteDict
 import git
 
 import tswitch.variables as var
+
+#optional dependencies
+try: 
+    from notify_run import Notify
+except ImportError: 
+    Notify = None
+    
+try: 
+    from pushover import Client
+except ImportError: 
+    Client = None
 
 ##FUNCTIONS##
 def create_folder(location):
@@ -34,6 +47,38 @@ def create_folder(location):
         return True
     except:
         return False
+
+def str_to_bool(string: str):
+    try:
+        return bool(distutils.util.strtobool(string))
+    except ValueError:
+        return False
+    
+def validate_pushover_debug(api_key: str, user_key: str, activated: bool):
+    if user_key in [None, '', ""] or Client == None or api_key in [None, '', ""]:
+        return (None, None, False)
+    else:
+        return (api_key, user_key, activated)
+    
+def validate_telegram_debug(adm_user_id: str, activated: bool):
+    if adm_user_id in [None, '', ""]:
+        return (None, False)
+    else:
+        return (adm_user_id, activated)
+
+def validate_notifyrun_debug(activated: bool):
+    if Notify == False:
+        return False
+    else:
+        return activated
+
+def validate_unlimited_users(users: str):
+    if users == None or users.replace(",","").isnumeric() == False:
+        return []
+    elif users not in ['', ""]:
+        return users.split(',')
+    else:
+        return []
 
 
 def is_git_repo(path):

@@ -23,22 +23,11 @@ l - show the games that are in your watch list
 stop - stop the bot and removes you from my database, YOUR WATCH LIST WILL BE DELETED!
 """
 #IMPORTS
-#optional dependencies
-try: 
-    from notify_run import Notify
-except ImportError: 
-    notify_run = None
-    
-try: 
-    from pushover import Client
-except ImportError: 
-    Client = None
-
-
 import traceback
 import logging
 from time import sleep
 from dotenv import load_dotenv
+
 import tswitch.variables as var
 from tswitch.functions import *
 
@@ -52,30 +41,24 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 #importing and testing env variables
-load_dotenv()
+load_dotenv()    
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_ADM_CHATID = os.getenv("TELEGRAM_ADM_CHATID")
-PUSHHOVER_USERKEY = os.getenv("PUSHHOVER_USERKEY")
-PUSHOVER_APIKEY = os.getenv("PUSHOVER_APIKEY")
-UNLIMITED_USERS = os.getenv("UNLIMITED_USERS")
 
-if TELEGRAM_ADM_CHATID in [None, '', ""] and var.TELEGRAM_DEBUG == True:
-    logging.info(f'ENV [telegram]: user asked for Telegram debugging but gave no chat ID')
-    var.TELEGRAM_DEBUG = False
-if PUSHHOVER_USERKEY in [None, '', ""] or Client == None or PUSHOVER_APIKEY in [None, '', ""] and var.P0USHOVER_DEBUG == True:
-    logging.info(f"ENV [pushover]: user asked for Pushover debugging but gave no user key/API key or do not have the 'python-pushover' package installed")
-    var.TELEGRAM_DEBUG = False
-if PUSHHOVER_USERKEY in [None, '', ""] or Client == None or PUSHOVER_APIKEY in [None, '', ""] and var.PUSHOVER_DEBUG == True:
-    logging.info(f"ENV [notify.run]: user asked for Notify.run debugging but do not have the 'notify-run' dpackage installed")
-    var.NOTIFYRUN_DEBUG = False
+PUSHOVER_APIKEY, PUSHHOVER_USERKEY, PUSHOVER_DEBUG = validate_pushover_debug(os.getenv("PUSHOVER_APIKEY"),
+                                                                             os.getenv("PUSHHOVER_USERKEY"),
+                                                                             str_to_bool(os.getenv("PUSHOVER_DEBUG"))
+                                                                             )
 
-if UNLIMITED_USERS == None:
-    UNLIMITED_USERS = []
-elif UNLIMITED_USERS not in ['', ""]:
-    UNLIMITED_USERS = UNLIMITED_USERS.split(',')
-else:
-    UNLIMITED_USERS = []
+TELEGRAM_ADM_CHATID, TELEGRAM_DEBUG = validate_telegram_debug(os.getenv("TELEGRAM_ADM_CHATID"),
+                                                         str_to_bool(os.getenv("TELEGRAM_DEBUG"))
+                                                         )
+
+NOTIFYRUN_DEBUG = validate_notifyrun_debug(str_to_bool(os.getenv("NOTIFYRUN_DEBUG")))
+
+UNLIMITED_USERS = validate_unlimited_users(os.getenv("UNLIMITED_USERS"))
+
+
 
 #FUNCTIONS
 def PushNotif(context: CallbackContext, message: str, title: str, pushover_priority=-1):
@@ -85,7 +68,7 @@ def PushNotif(context: CallbackContext, message: str, title: str, pushover_prior
     if message == '':
         message = "Telegram Switch watch bot bug report"
 
-    if var.PUSHOVER_DEBUG:
+    if PUSHOVER_DEBUG:
         #pushover allows maximum 1024 characters on message and 250 on title
         #detecting if message splitting is needed, split message in various payloads if needed
         max_str_len = 1024
@@ -119,9 +102,8 @@ def PushNotif(context: CallbackContext, message: str, title: str, pushover_prior
         except Exception as e:
             logging.info(f'ERROR HANDLER [pushover]: unable to send push notification {e}')
     
-    if var.NOTIFYRUN_DEBUG:
+    if NOTIFYRUN_DEBUG:
         #it's not documented but with my tests notify.run limits messages to around 3900 characters, I'm setting the max to 3000 just to be on the safe side
-
         #detecting if message splitting is needed, split message in various payloads if needed
         max_titlestr_len = 250
         max_str_len = 3000 - max_titlestr_len
@@ -150,7 +132,7 @@ def PushNotif(context: CallbackContext, message: str, title: str, pushover_prior
         except Exception as e:
             logging.info(f'ERROR HANDLER [notify.run]: unable to send push notification {e}')
     
-    if var.TELEGRAM_DEBUG:
+    if TELEGRAM_DEBUG:
         #telegram limits a max 4096 characters per message
         
         #detecting if message splitting is needed, split message in various payloads if needed
@@ -369,7 +351,6 @@ def rm_games(update: Update, context: CallbackContext):
 def add_games(update: Update, context: CallbackContext):
     """used to add games to user database, calls for AddToUserDB()"""
     user_id = get_user_id(update)
-
     #filter the user values for possible valid game IDs
     value_list = parse_args_from_value(update.message.text)
              

@@ -26,15 +26,6 @@ NXVERSION = 'https://github.com/16BitWonder/nx-versions'
 TITLEDB = 'https://github.com/blawar/titledb'
 # NXVERSION = 'https://github.com/evertonstz/nx-versions'
 
-# Debug Options 
-# #TODO add more services
-#Telegram
-TELEGRAM_DEBUG = True
-#Pushover https://pushover.net/
-PUSHOVER_DEBUG = False
-#Notify run https://notify.run/
-NOTIFYRUN_DEBUG = False
-
 #message shown by /start
 START_MESSAGE = "Hi! This bot is still alpha, is kinda barebones and bugs are kinds expected. It checks every hour for new updates and every day for new titles in titleDB\n\n<b>What it can do:</b>\n➕Subscribe to any valid Game ID provided by the user\n➕Notify the user when any of his games in the watching list gets an update\
                 \n\n<b>To be implemented:</b>\n➖Receive full game metadata (for now, you can only see the game and update IDs when the bot notifies you about a new update) \
