@@ -194,10 +194,7 @@ def get_script_dir(follow_symlinks=True):
     return os.path.dirname(path)
 
 def get_bot_data(context: CallbackContext):
-    try:
-        bot_data_dict = context.bot_data
-    except KeyError:
-        bot_data_dict = {}
+    bot_data_dict = context.bot_data
     return bot_data_dict
 
 def get_user_id(update: Update):
@@ -260,8 +257,11 @@ def start(update: Update, context: CallbackContext):
 #     if user_id == TELEGRAM_ADM_CHATID:
 #         value = update.message.text.partition(' ')[2]
 #         # Load chat values
-#         stored_game_ids = get_bot_data(context)[user_id]
-        
+            # try:
+            #     stored_game_ids = get_bot_data(context)[user_id]
+            # except KeyError:
+            #     stored_game_ids = []
+                
 
 def list_watched(update: Update, context: CallbackContext):
     """used to return the current watch list to the user"""
@@ -269,7 +269,10 @@ def list_watched(update: Update, context: CallbackContext):
     value = update.message.text.partition(' ')[2]
 
     # Load old values
-    stored_game_ids = get_bot_data(context)[user_id]
+    try:
+        stored_game_ids = get_bot_data(context)[user_id]
+    except KeyError:
+        stored_game_ids = []
     
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
 
@@ -321,7 +324,10 @@ def rm_games(update: Update, context: CallbackContext):
         reply_dict[i] = '🟠Not on watch list'
     
     # Load old values
-    stored_game_ids = get_bot_data(context)[user_id]
+    try:
+        stored_game_ids = get_bot_data(context)[user_id]
+    except KeyError:
+        stored_game_ids = []
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -378,7 +384,10 @@ def add_games(update: Update, context: CallbackContext):
         reply_dict[i] = '🟢Added on watch list'
     
     # Load old values
-    stored_game_ids = get_bot_data(context)[user_id]
+    try:
+        stored_game_ids = get_bot_data(context)[user_id]
+    except KeyError:
+        stored_game_ids = []
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -475,7 +484,7 @@ def callback_nxversions(context: CallbackContext):
     except:
         jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
-    # result = [{'Base ID': '010001000F2E3000', 'Update Name': '0100000000010800', 'Update ID': '26214050'}, {'Base ID': '010000000EEF0000', 'Update Name': '010000000EEF0800', 'Update ID': '6553304050'}, {'Base ID': '010000100C4B8000', 'Update Name': '010000100C4B8800', 'Update ID': '19660304050'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
+    # result = [{'Base ID': '01000040098E4000', 'Update Name': '01000040098E4800', 'Update ID': '262140'}, {'Base ID': '0100000000010000', 'Update Name': '0100000000010800', 'Update ID': '65533040'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '196603'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling NotifyUsersUpdate')
