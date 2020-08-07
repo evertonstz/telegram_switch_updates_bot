@@ -49,9 +49,12 @@ def create_folder(location):
         return False
 
 def str_to_bool(string: str):
-    try:
-        return bool(distutils.util.strtobool(string))
-    except ValueError:
+    if string != None:
+        try:
+            return bool(distutils.util.strtobool(string))
+        except ValueError:
+            return False
+    else:
         return False
     
 def validate_pushover_debug(api_key: str, user_key: str, activated: bool):
