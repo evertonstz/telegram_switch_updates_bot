@@ -15,7 +15,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. """
 
 #TODO turn this file into a settings.ini ?
 # Versioning
-VERSION = '0.0.1'
+VERSION = '0.0.3'
 
 # Bot parameters
 VERSION_CHECKING_INTERVAL = 3600  #this is the interval in seconds NXVERSION will be checked by the JobQueue 
