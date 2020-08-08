@@ -38,6 +38,11 @@ try:
     from pushover import Client
 except ImportError: 
     Client = None
+    
+try: 
+    from pushbullet import Pushbullet
+except ImportError: 
+    Pushbullet = None
 
 ##FUNCTIONS##
 def create_folder(location):
@@ -58,17 +63,27 @@ def str_to_bool(string: str):
         return False
     
 def validate_pushover_debug(api_key: str, user_key: str, activated: bool):
-    if user_key in [None, '', ""] or Client == None or api_key in [None, '', ""]:
+    if user_key in [None, ''] or Client == None or api_key in [None, '']:
         return (None, None, False)
     else:
         return (api_key, user_key, activated)
     
 def validate_telegram_debug(adm_user_id: str, activated: bool):
-    if adm_user_id in [None, '', ""]:
+    if adm_user_id in [None, '']:
         return (None, False)
     else:
         return (adm_user_id, activated)
 
+def validate_pushbullet_debug(acess_token: str, devices: str, activated: bool):
+    if acess_token in [None, '']:
+        return (None, [], False)
+    else:
+        devices_ret = []
+        if devices not in [None, '']:                  
+              devices_ret = [x.strip() for x in devices.split(',') if x.strip() != '']
+              
+        return (acess_token, devices_ret, activated)
+    
 def validate_notifyrun_debug(activated: bool):
     if Notify == False:
         return False
@@ -76,10 +91,10 @@ def validate_notifyrun_debug(activated: bool):
         return activated
 
 def validate_unlimited_users(users: str):
-    if users == None or users.replace(",","").isnumeric() == False:
+    if users == None or False in [x.strip().isnumeric() for x in users.split(',') if x.strip() != '']:
         return []
-    elif users not in ['', ""]:
-        return users.split(',')
+    elif users != '':
+        return [x.strip() for x in users.split(',') if x.strip() != '']
     else:
         return []
 

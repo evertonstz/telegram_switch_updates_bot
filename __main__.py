@@ -54,10 +54,14 @@ TELEGRAM_ADM_CHATID, TELEGRAM_DEBUG = validate_telegram_debug(os.getenv("TELEGRA
                                                          str_to_bool(os.getenv("TELEGRAM_DEBUG"))
                                                          )
 
+PUSHBULLET_ACESS_TOKEN, PUSHBULLET_DEVICES, PUSHBULLET_DEBUG = validate_pushbullet_debug(os.getenv("PUSHBULLET_ACESS_TOKEN"),
+                                                                                         os.getenv("PUSHBULLET_DEVICES"),
+                                                                                         str_to_bool(os.getenv("PUSHBULLET_DEBUG"))
+                                                                                         )
+                                                                                         
 NOTIFYRUN_DEBUG = validate_notifyrun_debug(str_to_bool(os.getenv("NOTIFYRUN_DEBUG")))
 
 UNLIMITED_USERS = validate_unlimited_users(os.getenv("UNLIMITED_USERS"))
-
 
 
 #FUNCTIONS
@@ -86,21 +90,41 @@ def PushNotif(context: CallbackContext, message: str, title: str, pushover_prior
         else:
             croped_title = title
             
+    if PUSHBULLET_DEBUG:
+        #Ppushbullet seems to not limit messages, but I'll limit it to 10k characters just in case
+        #detecting if message splitting is needed, split message in various payloads if needed
+        max_str_len = 10000
+        max_titlestr_len = 250
+        
+        message_list = []
+        if len(message) > max_str_len:
+            message_list = [message[i:i+max_str_len] for i in range(0, len(message), max_str_len)]
+        else:
+            message_list = [message]
+        
+        if len(title) + (len(message_list)*2 + 4) > max_titlestr_len:
+            rm_index = max_titlestr_len - (len(message_list)*2 + 4)
+            croped_title = title[:rm_index]
+        else:
+            croped_title = title
+            
         #trying to notify
         try:
-            logging.info(f'ERROR HANDLER [pushover]: trying to send push notification')
-            client = Client(PUSHHOVER_USERKEY, 
-                            api_token=PUSHOVER_APIKEY)
+            logging.info(f'ERROR HANDLER [pushbullet]: trying to send push notification')
+            pb = Pushbullet(PUSHBULLET_ACESS_TOKEN)
             
             for index, croped_message in enumerate(message_list):
-                client.send_message(croped_message, 
-                                    title=f'{croped_title} [{index+1}/{len(message_list)}]', 
-                                    priority=pushover_priority)
+                if len(PUSHBULLET_DEVICES) > 0:
+                    for device in pb.devices:
+                        if device.nickname in PUSHBULLET_DEVICES:
+                            pb.push_note(f'{croped_title} [{index+1}/{len(message_list)}]', croped_message, device=device)
+                else:
+                    pb.push_note(f'{croped_title} [{index+1}/{len(message_list)}]', croped_message)
                 sleep(1)
                 
-            logging.info(f'ERROR HANDLER [pushover]: push notification sent')
+            logging.info(f'ERROR HANDLER [pushbullet]: push notification sent')
         except Exception as e:
-            logging.info(f'ERROR HANDLER [pushover]: unable to send push notification {e}')
+            logging.info(f'ERROR HANDLER [pushbullet]: unable to send push notification {e}')
     
     if NOTIFYRUN_DEBUG:
         #it's not documented but with my tests notify.run limits messages to around 3900 characters, I'm setting the max to 3000 just to be on the safe side
@@ -155,7 +179,6 @@ def PushNotif(context: CallbackContext, message: str, title: str, pushover_prior
         try:
             logging.info(f'ERROR HANDLER [telegram]: trying to send push notification')
             for index, croped_message in enumerate(message_list):
-                # notify.send(f'<b>🔴{croped_title} [{index+1}/{len(message_list)}]</b> \n{croped_message}')
                 try:
                     context.bot.send_message(chat_id=TELEGRAM_ADM_CHATID, 
                                             text=f"<b>🔴{croped_title} [{index+1}/{len(message_list)}]</b>\n<code>{croped_message}</code>",
