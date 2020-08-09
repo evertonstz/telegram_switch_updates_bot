@@ -27,13 +27,14 @@ import traceback
 import logging
 from time import sleep
 from dotenv import load_dotenv
+from functools import wraps
 
 import tswitch.variables as var
 from tswitch.functions import *
 
 # # external
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence, CallbackContext
-from telegram import ParseMode, Update
+from telegram import ParseMode, Update, ChatAction
 # import telegram
 
 # Enable logging
@@ -65,6 +66,7 @@ UNLIMITED_USERS = validate_unlimited_users(os.getenv("UNLIMITED_USERS"))
 
 
 #FUNCTIONS
+
 def PushNotif(context: CallbackContext, message: str, title: str, pushover_priority=-1):
     """send push notifications to the ADM for bug report purposes"""
     if message == '':
@@ -238,11 +240,20 @@ def parse_args_from_value(value):
     return value_list
 
 #telegram functions
+def send_typing_action(func):
+    """Sends typing action while processing func command.
+    Source: https://github.com/python-telegram-bot/python-telegram-bot/wiki/Code-snippets#send-a-chat-action"""
+    @wraps(func)
+    def command_func(update, context, *args, **kwargs):
+        context.bot.send_chat_action(chat_id=update.effective_message.chat_id, action=ChatAction.TYPING)
+        return func(update, context,  *args, **kwargs)
+    return command_func
+
 def unknown(update: Update, context: CallbackContext):
     response_message = "Unknown command..."
     update.message.reply_text(response_message)
 
-    
+@send_typing_action
 def stop(update: Update, context: CallbackContext):
     """used to remove user from database, can only be toggled by user request"""
     user_id = get_user_id(update)
@@ -267,7 +278,7 @@ def stop(update: Update, context: CallbackContext):
             update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
                                   parse_mode=ParseMode.HTML)
 
-
+@send_typing_action
 def start(update: Update, context: CallbackContext):
     #TODO make user options here, including exit and delete options
     update.message.reply_text(var.START_MESSAGE,
@@ -285,7 +296,7 @@ def start(update: Update, context: CallbackContext):
             # except KeyError:
             #     stored_game_ids = []
                 
-
+@send_typing_action
 def list_watched(update: Update, context: CallbackContext):
     """used to return the current watch list to the user"""
     user_id = get_user_id(update)
@@ -315,7 +326,7 @@ def list_watched(update: Update, context: CallbackContext):
     update.message.reply_text(reply_text,
                               parse_mode=ParseMode.HTML)
 
-                               
+@send_typing_action                               
 def rm_games(update: Update, context: CallbackContext):
     """used to remove games from users watch list"""
     user_id = get_user_id(update)
@@ -376,7 +387,7 @@ def rm_games(update: Update, context: CallbackContext):
     update.message.reply_text(reply_text,
                             parse_mode=ParseMode.HTML)
 
-
+@send_typing_action
 def add_games(update: Update, context: CallbackContext):
     """used to add games to user database, calls for AddToUserDB()"""
     user_id = get_user_id(update)
