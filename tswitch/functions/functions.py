@@ -144,7 +144,6 @@ def UpdateTitleDB(db_folder, repo_folder):
     #create database foleder
     create_folder(db_folder)
 
-    #TODO use git to check for titledb updates, keep in mind this function will run every day
     #check if titledb repository is present, if not, clone it
     rescan_db = False
     if isfile(repo_file) is False or is_git_repo(repo_folder) is False or isdir(repo_folder) is False:
@@ -186,7 +185,7 @@ def UpdateTitleDB(db_folder, repo_folder):
     return result
 
 
-def UpdateNxversiosDB(db_folder, repo_folder): #TODO break away from bot file?
+def UpdateNxversiosDB(db_folder, repo_folder): 
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
 
@@ -209,8 +208,6 @@ def UpdateNxversiosDB(db_folder, repo_folder): #TODO break away from bot file?
             
             # iterate over list
             for game_dict in list_versions:
-                #TODO check if dict is valid
-
                 #new information 
                 base_id = game_dict["Base ID"]
                 update_id = game_dict['Update ID']
@@ -261,7 +258,6 @@ def UpdateNxversiosDB(db_folder, repo_folder): #TODO break away from bot file?
     #create database foleder
     create_folder(db_folder)
 
-    #TODO use git to check nx-updates for updates, keep in mind this function will run every hour or so
     #check if nx-versions repository is present, if not, clone it
     rescan_db = False
     if isfile(repo_folder+"/versions.txt") is False or is_git_repo(repo_folder) is False or isdir(repo_folder) is False:
@@ -310,10 +306,6 @@ def UpdateNxversiosDB(db_folder, repo_folder): #TODO break away from bot file?
                 logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
         else:
             logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
-
-    #TODO if there are new updates, copy versions.txt to old_versions.txt, clone the new versions.txt
-
-    #TODO after new file is cloned, parse it to the database (maibe use diff so there's no need to read the entire file)
 
     #result isused by the bot to know if runing the check cicle for user is necessary or not
     return result

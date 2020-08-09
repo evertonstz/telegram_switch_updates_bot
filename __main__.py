@@ -421,7 +421,6 @@ def add_games(update: Update, context: CallbackContext):
     
     # filter out games that are already in the list
     game_ids = list(set(valid_game_ids+stored_game_ids))
-    
     if len(game_ids) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
@@ -593,11 +592,9 @@ def main():
     )
 
     # log all errors
-    # TODO try to make error report work
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    #TODO add JobQueue for titledb
     job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
     job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
@@ -608,3 +605,6 @@ def main():
 if __name__ == '__main__':
     print("press CTRL + C to cancel.") 
     main()
+    
+# TODO migrate from sqlitedict and PicklePersistence to redis or mogonDB
+# TODO intead of user information, use context.bot_data on memory to prevent user abuse
