@@ -25,12 +25,15 @@ stop - stop the bot and removes you from my database, YOUR WATCH LIST WILL BE DE
 #IMPORTS
 import traceback
 import logging
+import datetime
 from time import sleep
 from dotenv import load_dotenv
 from functools import wraps
 
 import tswitch.variables as var
 from tswitch.functions import *
+# from tswitch.db import *
+import db
 
 # # external
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence, CallbackContext
@@ -64,6 +67,7 @@ NOTIFYRUN_DEBUG = validate_notifyrun_debug(str_to_bool(os.getenv("NOTIFYRUN_DEBU
 
 UNLIMITED_USERS = validate_unlimited_users(os.getenv("UNLIMITED_USERS"))
 
+# MONGO_URL, MONGO_PORT = os.getenv("MONGO_URL"), os.getenv("MONGO_PORT")
 
 #FUNCTIONS
 
@@ -268,11 +272,9 @@ def stop(update: Update, context: CallbackContext):
         if value_list[0] == 'yes':
             logging.info(f'USER REQUEST {user_id}: user requested to be removed from database.')
             
-            # blacking user's dictionary
-            try:
-                context.bot_data.pop(user_id)
-            except KeyError:
-                pass
+            #remove user from mongo
+            a = db.rm_from_collection('user_data', user_id)
+            print(a.deleted_count)
                 
             logging.info(f'USER REQUEST {user_id}: user removed from database.')
             update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
@@ -302,11 +304,19 @@ def list_watched(update: Update, context: CallbackContext):
     user_id = get_user_id(update)
     value = update.message.text.partition(' ')[2]
 
-    # Load old values
-    try:
-        stored_game_ids = get_bot_data(context)[user_id]
-    except KeyError:
+    user_db = db.find('user_data', {"_id":user_id})
+
+    if user_db == None:
+        #no user_db, init one
+        user_db = {"_id":user_id, 
+                   'watched_games':[], 
+                   'options':{'mute':0}
+                   }
+        db.add_to_collection('user_data', user_db)
         stored_game_ids = []
+    else:
+        stored_game_ids = user_db['watched_games']
+
     
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
 
@@ -358,10 +368,18 @@ def rm_games(update: Update, context: CallbackContext):
         reply_dict[i] = '🟠Not on watch list'
     
     # Load old values
-    try:
-        stored_game_ids = get_bot_data(context)[user_id]
-    except KeyError:
+    user_db = db.find('user_data', {"_id":user_id})
+
+    if user_db == None:
+        #no user_db, init one
+        user_db = {"_id":user_id, 
+                   'watched_games':[], 
+                   'options':{'mute':0}
+                   }
+        db.add_to_collection('user_data', user_db)
         stored_game_ids = []
+    else:
+        stored_game_ids = user_db['watched_games']
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -373,8 +391,10 @@ def rm_games(update: Update, context: CallbackContext):
     # filter out games that are already in the list
     game_ids = list(set(stored_game_ids)-set(valid_game_ids))
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
-    # Store dicts on bot_data
-    context.bot_data[user_id] = sorted(game_ids)
+    
+    # Store dicts on user_db and update them on mongodb
+    user_db['watched_games'] = sorted(game_ids)
+    db.update_collection('user_data', user_db)
 
     #making reply string
     reply_text = '📺<b>The following procedures were made</b>'
@@ -418,10 +438,19 @@ def add_games(update: Update, context: CallbackContext):
         reply_dict[i] = '🟢Added on watch list'
     
     # Load old values
-    try:
-        stored_game_ids = get_bot_data(context)[user_id]
-    except KeyError:
+    user_db = db.find('user_data', {"_id":user_id})
+
+    if user_db == None:
+        #no user_db, init one
+        user_db = {"_id":user_id, 
+                   'watched_games':[], 
+                   'options':{'mute':0}
+                   }
+        db.add_to_collection('user_data', user_db)
         stored_game_ids = []
+    else:
+        stored_game_ids = user_db['watched_games']
+
 
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
@@ -432,14 +461,18 @@ def add_games(update: Update, context: CallbackContext):
     
     # filter out games that are already in the list
     game_ids = list(set(valid_game_ids+stored_game_ids))
+    print('game_ids: ', game_ids)
     if len(game_ids) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
-                                  parse_mode=ParseMode.HTML)
-        return   
+                                parse_mode=ParseMode.HTML)
+        return
+    
     logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
-    # Store dicts on bot_data
-    context.bot_data[user_id] = sorted(game_ids)
+    
+    # Store dicts on user_db and update them on mongodb
+    user_db['watched_games'] = sorted(game_ids)
+    db.update_collection('user_data', user_db)
 
     #making reply string
     reply_text = '📺<b>The following procedures were made</b>'
@@ -451,7 +484,6 @@ def add_games(update: Update, context: CallbackContext):
         
     update.message.reply_text(reply_text,
                               parse_mode=ParseMode.HTML)
-
 
 def jobqueue_error_handler(context: CallbackContext, traceback: str, log_msg: str):
         #report to the user
@@ -606,15 +638,21 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
     updater.idle()
 
 if __name__ == '__main__':
-    print("press CTRL + C to cancel.") 
+    print("press CTRL + C to cancel.")
+    # with Database(MONGO_URL, MONGO_PORT) as database:
+    #     user = {"_id":"441775416", 'watched_games':['0100646009FBE000', '01006F8002326000'], 'options':{'mute':0},'last_interaction':datetime.datetime.now()}
+    #     # print(database.update_collection('user_data', {"_id":"441775416", 'watched_games':['0100646009FBE090', '01006F8002326099']}))
+    #     print(database.find('user_data', {"_id":"441775417"}))
+    
+    # exit()
     main()
     
 # TODO migrate from sqlitedict and PicklePersistence to redis or mogonDB
