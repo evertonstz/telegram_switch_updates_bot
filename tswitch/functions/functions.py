@@ -120,7 +120,7 @@ def LoadTitleDB(db_folder, table_name='titledb'):
     
     return(db)
         
-
+#TODO remove db_folder
 def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     """function is used to build and interact with titledb database
     it's suposed to run every day, but the interval can be tweaked at variables.py"""
@@ -143,11 +143,12 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
                 game_dict.pop('id')
             
             mongo_data = db.find(collection_name, {"_id":id})
-            if 'last_interaction' in mongo_data:
-                mong_data_last_interaction = mongo_data['last_interaction']
-                mongo_data.pop('last_interaction')
-            else:
-                mong_data_last_interaction = None
+            if mongo_data is not None:
+                if 'last_interaction' in mongo_data:
+                    mong_data_last_interaction = mongo_data['last_interaction']
+                    mongo_data.pop('last_interaction')
+                else:
+                    mong_data_last_interaction = None
                 
             insertion = {
                 "_id": id,
@@ -173,7 +174,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
                     db.update_collection(collection_name, insertion)
                 else:
                     #add to mongo
-                    logging.info(f'UPDATE TITLEDB: {id} added to mongo')
+                    # logging.info(f'UPDATE TITLEDB: {id} added to mongo')
                     db.add_to_collection(collection_name, insertion)
 
     #check if titledb repository is present, if not, clone it
@@ -220,7 +221,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     return result
 
 
-def UpdateNxversiosDB(db_folder, repo_folder): 
+def UpdateNxversiosDB(db_folder, repo_folder, collection_name='versions'): 
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
 
@@ -229,50 +230,35 @@ def UpdateNxversiosDB(db_folder, repo_folder):
     logging.info(f'UPDATE VERSIONS: job started!')
     
     # functions
-    def AddtoDB(list_versions, table_name='versions'):
+    def AddtoDB(list_versions):
         """adds a the list of dirs to the current database
         this is a example: list = [{"Base ID":"0100B5B00EF38800", "Update Name":"v131072", "Update ID":"0100B5B00EF38800"}]
         """
-        with SqliteDict(db_location, autocommit=False) as database:
-            # check and create "table" in case it don't exist
-            if table_name not in database:
-                database[table_name] = []
-
-            database_editable = database[table_name]
-            added_to_database =[]
-            
-            # iterate over list
-            for game_dict in list_versions:
-                #new information 
-                base_id = game_dict["Base ID"]
-                update_id = game_dict['Update ID']
-                update_version_new = game_dict['Update Name']
-
-                # check if keys part of the dict are already in the database 'GameID'
-                checker = next((item for item in database_editable if item['Base ID'] == base_id), None)
-
-                if checker is not None:
-                    # this means there's already a entry, only update the last entry
-                    if checker != game_dict: 
-                        #this means there's a change
-                        checker_index = database_editable.index(checker)
-                        old_ver = database_editable[checker_index]["Update Name"]
-                        database_editable[checker_index].update(game_dict)
-                        added_to_database.append({"Base ID":base_id, "Update Name":update_id, "Update ID":update_version_new})
-                        logging.info(f'UPDATE VERSIONS [{base_id}]: {old_ver} -> {update_version_new}')
+        #load json file
+        added_to_database = []
+        for game_dict in list_versions:
+            id = game_dict["_id"]
+            mongo_data = db.find(collection_name, {"_id":id})
+            if mongo_data is not None:
+                if 'last_interaction' in mongo_data:
+                    mong_data_last_interaction = mongo_data['last_interaction']
+                    mongo_data.pop('last_interaction')
                 else:
-                    # this means it's a new entry, append new dict
-                    database_editable.append({"Base ID":base_id, "Update Name":update_version_new, "Update ID":update_id})
-                    added_to_database.append({"Base ID":base_id, "Update Name":update_id, "Update ID":update_version_new})
-                    logging.info(f'UPDATE VERSIONS [{base_id}]: new entry {update_version_new}')
-                
-            #commit changes
-            database[table_name] = database_editable
-            database.commit()
-            logging.info('UPDATE VERSIONS: changes commited!')
-            logging.info('UPDATE VERSIONS: done!')
+                    mong_data_last_interaction = None
             
-            return added_to_database
+            #check if game_dict and mongo_data are the same
+            if game_dict != mongo_data:
+                if mongo_data is not None:
+                    #update on mongo
+                    logging.info(f'UPDATE VERSIONS: {id}, information updated on mongo')
+                    db.update_collection(collection_name, game_dict)
+                    added_to_database.append(game_dict)
+                else:
+                    #add to mongo
+                    logging.info(f'UPDATE VERSIONS: {id} added to mongo')
+                    db.add_to_collection(collection_name, game_dict)
+                    added_to_database.append(game_dict)
+        return added_to_database
                 
     def VersionsToList(versions_text_string):
         return_list = []
@@ -283,15 +269,12 @@ def UpdateNxversiosDB(db_folder, repo_folder):
                     raise()
                 update_id, update_version_latest = i.split("|")
                 base_id = update_id[:-3]+"000"
-                if next((item for item in return_list if item['Base ID'] == base_id), None) is None:
+                if next((item for item in return_list if item['_id'] == base_id), None) is None:
                     if update_id.endswith("800"):
-                        return_list.append({"Base ID":base_id,"Update Name":update_version_latest, "Update ID":update_id})
+                        return_list.append({"_id":base_id,"version_number":update_version_latest, "update_id":update_id})
             except:
                 pass
         return return_list
-
-    #create database foleder
-    create_folder(db_folder)
 
     #check if nx-versions repository is present, if not, clone it
     rescan_db = False
@@ -324,16 +307,19 @@ def UpdateNxversiosDB(db_folder, repo_folder):
 
     
     #making database
+    #determine if it's first run
+    first_run = collection_name not in db.list_collections()
+    first_run = True
     #if there's no db file yet, parse entire versions.txt file
     #TODO don't notify users if it's first clone?
     result=[]
-    if isfile(db_location) is False or rescan_db is True:
+    if first_run is True or rescan_db is True:
         #update entire database
         nx_versions_file = False
         if isfile(repo_folder+"/versions.txt") is True:
             with open(repo_folder+"/versions.txt", 'r') as file:
                 nx_versions_file = file.read()
-
+                
             if nx_versions_file is not False:
                 result = AddtoDB(VersionsToList(nx_versions_file))
                 logging.info(f'UPDATE VERSIONS: {len(result)} updates found in this run')
@@ -346,15 +332,19 @@ def UpdateNxversiosDB(db_folder, repo_folder):
     return result
 
 
-def NotifyUsersUpdate(update_list, user_database):
+def NotifyUsersUpdate(update_list):
     """used to match new updates with ids users are currently monitoring"""
     
     notify_dict = {}
-    for user_id in user_database:
+    user_database = db.return_collection('user_data')
+    #TODO test what happen if there's no user data in the database
+    
+    for user_info in user_database:
+        user_id = user_info["_id"]
         watching_list = []       
-        user_watching = user_database[user_id]
+        user_watching = user_info['watched_games']
         for i in update_list:
-            if i['Base ID'] in user_watching or i['Update ID'] in user_watching:
+            if i['_id'] in user_watching or i['update_id'] in user_watching:
                 watching_list.append(i)
         if len(watching_list) > 0:
             notify_dict[user_id] = watching_list

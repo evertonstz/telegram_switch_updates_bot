@@ -549,23 +549,26 @@ def callback_nxversions(context: CallbackContext):
     except:
         jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
-    # result = [{'Base ID': '01000040098E4000', 'Update Name': '01000040098E4800', 'Update ID': '262140'}, {'Base ID': '0100000000010000', 'Update Name': '0100000000010800', 'Update ID': '65533040'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '196603'}, {'Base ID': '010000100FB62000', 'Update Name': '010000100FB62800', 'Update ID': '6553304050'}, {'Base ID': '010000300C79C000', 'Update Name': '010000300C79C800', 'Update ID': '3932304050'}, {'Base ID': '010000400F582000', 'Update Name': '010000400F582800', 'Update ID': '6553304050'}, {'Base ID': '010000500B9F4000', 'Update Name': '010000500B9F4800', 'Update ID': '6553304050'}, {'Base ID': '010000500DB50000', 'Update Name': '010000500DB50800', 'Update ID': '26214304050'}, {'Base ID': '01000060085D2000', 'Update Name': '01000060085D2800', 'Update ID': '1310304050'}]
+    
+    # result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, {'_id': '010000000EEF0000', 'version_number': '010000000EEF0800', 'update_id': '262140'}]
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling NotifyUsersUpdate')
-        users_to_notify = NotifyUsersUpdate(result, get_bot_data(context))
-        logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify - Notification Dict {users_to_notify}')
+        users_to_notify = NotifyUsersUpdate(result)
+        logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify - Notification Dict')
 
         if len(users_to_notify) > 0:
-            #this means there are users to be notified, load titledb to get information
-            titledb = LoadTitleDB(f"{get_script_dir()}/database")
+            #load info about all games from titledb
+            games_data = [db.find('titledb', {"_id":x['_id']}) for x in result]
+            titledb = {x['_id']:x for x in games_data if x is not None}
+            
             for user_id in users_to_notify:
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                 reply_msg = '📺<b>New updates available</b>\n'
                 for index, i in enumerate(users_to_notify[user_id]):
                     logging.info(f'JobQueue [nx-versions]: Userdd ID {user_id} - Update: {i}')
                     #making variables
-                    base_id = i['Base ID']
+                    base_id = i['_id']
                     
                     try:
                         game_name = titledb[base_id]['name']
@@ -573,8 +576,8 @@ def callback_nxversions(context: CallbackContext):
                         game_name = 'UNKNOWN TITLE'
                         
                     # game_publisher = titledb[base_id]['publisher']
-                    game_update_id = i['Update Name']
-                    game_update_version = i['Update ID']
+                    game_update_id = i['update_id']
+                    game_update_version = i['version_number']
                     if index > 0:
                         reply_msg += '\n\n'
                     reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{game_update_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
@@ -638,8 +641,8 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
@@ -647,12 +650,6 @@ def main():
 
 if __name__ == '__main__':
     print("press CTRL + C to cancel.")
-    # with Database(MONGO_URL, MONGO_PORT) as database:
-    #     user = {"_id":"441775416", 'watched_games':['0100646009FBE000', '01006F8002326000'], 'options':{'mute':0},'last_interaction':datetime.datetime.now()}
-    #     # print(database.update_collection('user_data', {"_id":"441775416", 'watched_games':['0100646009FBE090', '01006F8002326099']}))
-    #     print(database.find('user_data', {"_id":"441775417"}))
-    
-    # exit()
     main()
     
 # TODO migrate from sqlitedict and PicklePersistence to redis or mogonDB

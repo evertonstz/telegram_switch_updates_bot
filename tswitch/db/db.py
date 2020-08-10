@@ -46,6 +46,9 @@ data = client[MONGO_DBNAME]
 def find(collection: str, search_dict: dict):
     return data[collection].find_one(search_dict)
 
+def return_collection(collection: str):
+    return list(data[collection].find())
+
 def is_id_on_db(collection: str, search_dict: dict):
     if data[collection].find_one(search_dict) == None:
         return False
