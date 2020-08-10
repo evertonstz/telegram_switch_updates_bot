@@ -27,6 +27,7 @@ from sqlitedict import SqliteDict
 import git
 
 import tswitch.variables as var
+import tswitch.db as db
 
 #optional dependencies
 try: 
@@ -120,14 +121,15 @@ def LoadTitleDB(db_folder, table_name='titledb'):
     return(db)
         
 
-def UpdateTitleDB(db_folder, repo_folder):
+def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     """function is used to build and interact with titledb database
     it's suposed to run every day, but the interval can be tweaked at variables.py"""
-    db_location = f"{db_folder}/titledb_database.db"
+    # db_location = f"{db_folder}/titledb_database.db"
     repo_file = f'{repo_folder}/titles.US.en.json'
+    
     logging.info(f'UPDATE TITLEDB: job started!')
 
-    def ReplaceDB(table_name='titledb'):
+    def UpdateDB():
         #TODO add option to change language
         """adds a the list of dirs to the current database
         """
@@ -135,14 +137,44 @@ def UpdateTitleDB(db_folder, repo_folder):
         with open(f'{repo_folder}/titles.US.en.json') as file:
             titledb_json = load(file)
         
-        with SqliteDict(db_location, autocommit=False) as database:
-            #just replace old db with the new one
-            database[table_name] = titledb_json
-            database.commit()
-            return True
-
-    #create database foleder
-    create_folder(db_folder)
+        for id in titledb_json:
+            game_dict = titledb_json[id]
+            if 'id' in game_dict:
+                game_dict.pop('id')
+            
+            mongo_data = db.find(collection_name, {"_id":id})
+            if 'last_interaction' in mongo_data:
+                mong_data_last_interaction = mongo_data['last_interaction']
+                mongo_data.pop('last_interaction')
+            else:
+                mong_data_last_interaction = None
+                
+            insertion = {
+                "_id": id,
+                "name": "",
+                "version": "",
+                "region": "",
+                "releaseDate": "",
+                "rating": "",
+                "publisher": "",
+                "description": "",
+                "size": "",
+                "rank": ""
+            }
+            
+            #update insertions game_dict
+            insertion.update(game_dict)
+            
+            #check if insertion and mongo_data are the same
+            if insertion != mongo_data:
+                if mongo_data is not None:
+                    #update on mongo
+                    logging.info(f'UPDATE TITLEDB: {id}, information updated on mongo')
+                    db.update_collection(collection_name, insertion)
+                else:
+                    #add to mongo
+                    logging.info(f'UPDATE TITLEDB: {id} added to mongo')
+                    db.add_to_collection(collection_name, insertion)
 
     #check if titledb repository is present, if not, clone it
     rescan_db = False
@@ -176,10 +208,13 @@ def UpdateTitleDB(db_folder, repo_folder):
     #making database
     #it'll parse the entire titledb_database.db every time a update is detected
     result = False
-    if isfile(db_location) is False or rescan_db is True:
+    #determine if it's first run
+    first_run = collection_name not in db.list_collections()
+    
+    if first_run is True or rescan_db is True:
         #update entire database
-        logging.info(f'UPDATE TITLEDB: adding titledb to SqliteDict')
-        ReplaceDB()
+        logging.info(f'UPDATE TITLEDB: adding titledb to MongoDB')
+        UpdateDB()
         result = True
         
     return result
