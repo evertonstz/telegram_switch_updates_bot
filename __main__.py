@@ -33,7 +33,7 @@ from functools import wraps
 import tswitch.variables as var
 from tswitch.functions import *
 # from tswitch.db import *
-import db
+import tswitch.db as db
 
 # # external
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence, CallbackContext
@@ -45,29 +45,40 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 #importing and testing env variables
-load_dotenv()    
+def get_script_dir(follow_symlinks=True):
+    """function used to get the directory the script is located"""
+    if getattr(sys, 'frozen', False): # py2exe, PyInstaller, cx_Freeze
+        path = os.path.abspath(sys.executable)
+    else:
+        path = inspect.getabsfile(get_script_dir)
+    if follow_symlinks:
+        path = os.path.realpath(path)
+    return os.path.dirname(path)
+#test if there is a .env file
+env_location = f'{get_script_dir()}/.env'
+if os.path.isfile(env_location):
+    #load from .env
+    load_dotenv(dotenv_path=env_location)
 
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 
 PUSHOVER_APIKEY, PUSHHOVER_USERKEY, PUSHOVER_DEBUG = validate_pushover_debug(os.getenv("PUSHOVER_APIKEY"),
-                                                                             os.getenv("PUSHHOVER_USERKEY"),
-                                                                             str_to_bool(os.getenv("PUSHOVER_DEBUG"))
-                                                                             )
+                                                                            os.getenv("PUSHHOVER_USERKEY"),
+                                                                            str_to_bool(os.getenv("PUSHOVER_DEBUG"))
+                                                                            )
 
 TELEGRAM_ADM_CHATID, TELEGRAM_DEBUG = validate_telegram_debug(os.getenv("TELEGRAM_ADM_CHATID"),
-                                                         str_to_bool(os.getenv("TELEGRAM_DEBUG"))
-                                                         )
+                                                        str_to_bool(os.getenv("TELEGRAM_DEBUG"))
+                                                        )
 
 PUSHBULLET_ACESS_TOKEN, PUSHBULLET_DEVICES, PUSHBULLET_DEBUG = validate_pushbullet_debug(os.getenv("PUSHBULLET_ACESS_TOKEN"),
-                                                                                         os.getenv("PUSHBULLET_DEVICES"),
-                                                                                         str_to_bool(os.getenv("PUSHBULLET_DEBUG"))
-                                                                                         )
-                                                                                         
+                                                                                        os.getenv("PUSHBULLET_DEVICES"),
+                                                                                        str_to_bool(os.getenv("PUSHBULLET_DEBUG"))
+                                                                                        )
+                                                                                        
 NOTIFYRUN_DEBUG = validate_notifyrun_debug(str_to_bool(os.getenv("NOTIFYRUN_DEBUG")))
 
 UNLIMITED_USERS = validate_unlimited_users(os.getenv("UNLIMITED_USERS"))
-
-# MONGO_URL, MONGO_PORT = os.getenv("MONGO_URL"), os.getenv("MONGO_PORT")
 
 #FUNCTIONS
 
@@ -210,17 +221,6 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     PushNotif("Uncaught exception, possible force exit", "Uncaught exception, possible force exit", 0)
 
 sys.excepthook = handle_exception
-
-
-def get_script_dir(follow_symlinks=True):
-    """function used to get the directory the script is located"""
-    if getattr(sys, 'frozen', False): # py2exe, PyInstaller, cx_Freeze
-        path = os.path.abspath(sys.executable)
-    else:
-        path = inspect.getabsfile(get_script_dir)
-    if follow_symlinks:
-        path = os.path.realpath(path)
-    return os.path.dirname(path)
 
 def get_bot_data(context: CallbackContext):
     bot_data_dict = context.bot_data
@@ -430,7 +430,7 @@ def add_games(update: Update, context: CallbackContext):
     
     reply_dict = {x:'🔴Invalid Game ID' for x in value_list}
     
-    valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16 and x.endswith('000')]))
+    valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16 and x.endswith('000') and db.is_id_on_db('titledb', x)]))
     logging.info(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
     
     #adding valid ids to reply dictionary
@@ -521,10 +521,10 @@ def error_handler(update: Update, context: CallbackContext):
 
 #job queues
 def callback_titledb(context: CallbackContext):
-    """this is the callack for titledb's job queue"""
-    
+    """this is the callack for titledb's job queue"""  
     logging.info('JobQueue [titledb]: start')
     result = False
+    
     try:
         result = UpdateTitleDB(f"{get_script_dir()}/database", f"{get_script_dir()}/titledb")
     except:
