@@ -233,7 +233,7 @@ def get_user_id(update: Update):
 
 def parse_args_from_value(value):
     """parse arguments from value"""
-    value = value.partition(' ')[2].replace('\n',' ')
+    value = value.partition(' ')[2].replace('\n',' ').upper()
     value_list = []
     for i in [x for x in value.split(' ') if x != '']:
         if len(i) == 16 and i.endswith('800'):
@@ -459,7 +459,7 @@ def add_games(update: Update, context: CallbackContext):
     
     # filter out games that are already in the list
     game_ids = list(set(valid_game_ids+stored_game_ids))
-    print('game_ids: ', game_ids)
+
     if len(game_ids) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
         logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
