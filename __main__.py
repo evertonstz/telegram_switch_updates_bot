@@ -564,14 +564,14 @@ def callback_nxversions(context: CallbackContext):
     logging.info('JobQueue [nx-versions]: start')
     result = []
     users_to_notify = []
-    # try:
-    #     result = UpdateNxversiosDB(f"{get_script_dir()}/nx-versions")
-    # except:
-    #     jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
+    try:
+        result = UpdateNxversiosDB(f"{get_script_dir()}/nx-versions")
+    except:
+        jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
     
-    result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, 
-              {'_id': '010036A011302000', 'version_number': '24112', 'update_id': '010036A011302800'}]
+    # result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, 
+    #           {'_id': '010036A011302000', 'version_number': '24112', 'update_id': '010036A011302800'}]
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling user notification system')
@@ -588,7 +588,6 @@ def callback_nxversions(context: CallbackContext):
             titledb = {x['_id']:x for x in games_data if x is not None}
             
             for user_info in users_to_notify:
-#{'_id': '441775416', 'watched_games': ['01009B90006DC000'], 'options': {'mute': 0, 'notify_all': 0}, 'last_interaction': datetime.datetime(2020, 8, 11, 18, 31, 8, 709000)}
                 user_id = user_info['_id']
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                 reply_msg = '📺<b>New updates available</b>\n'
