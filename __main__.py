@@ -614,10 +614,7 @@ def callback_nxversions(context: CallbackContext):
 # main
 def main():
     #create db folder
-    create_folder(f'{get_script_dir()}/database')
-    my_persistence = PicklePersistence(filename=f'{get_script_dir()}/database/user_database.db')
-
-    updater = Updater(token=TELEGRAM_TOKEN, persistence=my_persistence, use_context=True)
+    updater = Updater(token=TELEGRAM_TOKEN, use_context=True)
     job = updater.job_queue
 
     dispatcher = updater.dispatcher
