@@ -23,7 +23,7 @@ TITLEDB_CHECKING_INTERVAL = 86400 #this is the interval in seconds TITLEDB will 
 USER_LIMIT = 15
 # github databases
 NXVERSION = 'https://github.com/16BitWonder/nx-versions'
-TITLEDB = 'https://github.com/blawar/titledb'
+TITLEDB = 'https://github.com/RebirthOfficial/titledb'
 # NXVERSION = 'https://github.com/evertonstz/nx-versions'
 
 #message shown by /start

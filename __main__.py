@@ -20,6 +20,7 @@ start - show the help message again
 a - add a game to your watching list
 r - remove a game from your watching list
 l - show the games that are in your watch list
+s - search for a Game ID using a game's name
 stop - stop the bot and removes you from my database, YOUR WATCH LIST WILL BE DELETED!
 """
 #IMPORTS
@@ -292,25 +293,29 @@ def search(update: Update, context: CallbackContext):
     user_id = get_user_id(update)
     value = update.message.text.partition(' ')[2].strip()
     value = str_to_alphanum(value) #remove non alphanum but keep spaces
-
-    result = db.search('titledb', { "name" : {"$regex" : value, '$options' : 'i'}, "_id" : {"$regex" : '000$'} }, 'rank')
-    #TODO test if it's passing telegram's character limit for messages
-    if len(result) > 0:
-        #strip results
-        if len(result) > SEARCH_LIMIT:
-            result = result[:SEARCH_LIMIT]
-        
-        reply_text = "📺<b>Search Games</b>"
-        
-        for i in result:
-            reply_text += f"\n\n<code>{i['_id']}</code> - {i['name']}"
+    
+    if len(value) > 0:
+        result = db.search('titledb', { "name" : {"$regex" : value, '$options' : 'i'}, "_id" : {"$regex" : '000$'} }, 'rank')
+        #TODO test if it's passing telegram's character limit for messages
+        if len(result) > 0:
+            #strip results
+            if len(result) > SEARCH_LIMIT:
+                result = result[:SEARCH_LIMIT]
             
-        update.message.reply_text(reply_text,
-                                  parse_mode=ParseMode.HTML)
-        
+            reply_text = "📺<b>Search Games</b>"
+            
+            for i in result:
+                reply_text += f"\n<code>{i['_id']}</code> - {i['name']}"
+                
+            update.message.reply_text(reply_text,
+                                    parse_mode=ParseMode.HTML)
+            
+        else:
+            update.message.reply_text("📺<b>Search Games</b>\nNo games found with the given keyword.",
+                                    parse_mode=ParseMode.HTML)
     else:
-        update.message.reply_text("📺<b>Search Games</b>\nNo games found with the given keyword.",
-                                  parse_mode=ParseMode.HTML)
+        update.message.reply_text("📺<b>Search Games</b>\nYou need a keyword to search the database.\nExample: <code>/s paper mario</code>",
+                        parse_mode=ParseMode.HTML)
         
         
 
