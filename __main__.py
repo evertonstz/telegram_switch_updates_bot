@@ -563,41 +563,49 @@ def callback_nxversions(context: CallbackContext):
     
     logging.info('JobQueue [nx-versions]: start')
     result = []
-    users_to_notify = {}
-    try:
-        result = UpdateNxversiosDB(f"{get_script_dir()}/database", f"{get_script_dir()}/nx-versions")
-    except:
-        jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
+    users_to_notify = []
+    # try:
+    #     result = UpdateNxversiosDB(f"{get_script_dir()}/nx-versions")
+    # except:
+    #     jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
     
-    # result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, {'_id': '010000000EEF0000', 'version_number': '010000000EEF0800', 'update_id': '262140'}]
+    result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, 
+              {'_id': '010036A011302000', 'version_number': '24112', 'update_id': '010036A011302800'}]
     
     if len(result) > 0:
-        logging.info(f'JobQueue [nx-versions]: calling NotifyUsersUpdate')
-        users_to_notify = NotifyUsersUpdate(result)
-        logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify - Notification Dict')
+        logging.info(f'JobQueue [nx-versions]: calling user notification system')
+        
+        result_ids = [x['_id'] for x in result]
+        result_index_id = {x['_id']:x for x in result}
+        users_to_notify = db.search('user_data', {'watched_games': { '$in': result_ids } })
+        
+        logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify')
 
         if len(users_to_notify) > 0:
             #load info about all games from titledb
             games_data = [db.find('titledb', {"_id":x['_id']}) for x in result]
             titledb = {x['_id']:x for x in games_data if x is not None}
             
-            for user_id in users_to_notify:
+            for user_info in users_to_notify:
+#{'_id': '441775416', 'watched_games': ['01009B90006DC000'], 'options': {'mute': 0, 'notify_all': 0}, 'last_interaction': datetime.datetime(2020, 8, 11, 18, 31, 8, 709000)}
+                user_id = user_info['_id']
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                 reply_msg = '📺<b>New updates available</b>\n'
-                for index, i in enumerate(users_to_notify[user_id]):
-                    logging.info(f'JobQueue [nx-versions]: Userdd ID {user_id} - Update: {i}')
-                    #making variables
-                    base_id = i['_id']
+                
+                #match games user is watching against games in the result list
+                notify_user_ids = list(set(user_info['watched_games']).intersection(result_ids))
+                
+                for index, base_id in enumerate(notify_user_ids):
                     
                     try:
                         game_name = titledb[base_id]['name']
                     except KeyError:
                         game_name = 'UNKNOWN TITLE'
-                        
-                    # game_publisher = titledb[base_id]['publisher']
-                    game_update_id = i['update_id']
-                    game_update_version = i['version_number']
+                                
+                    game_update_id = result_index_id[base_id]['update_id']
+                    game_update_version = result_index_id[base_id]['version_number']
+                    
                     if index > 0:
                         reply_msg += '\n\n'
                     reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{game_update_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
@@ -605,9 +613,10 @@ def callback_nxversions(context: CallbackContext):
                 sleep(2) #time between each user notification to avoid hitting API limits                 
                 context.bot.send_message(chat_id=int(user_id), 
                                         text=reply_msg,
-                                        parse_mode=ParseMode.HTML)
+                                        parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
                                         
                 logging.info(f'JobQueue [nx-versions]: notified {user_id}')
+                
     
     logging.info(f'JobQueue [nx-versions]: end') 
     

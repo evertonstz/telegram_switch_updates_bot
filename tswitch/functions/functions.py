@@ -220,7 +220,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     return result
 
 
-def UpdateNxversiosDB(db_folder, repo_folder, collection_name='versions'): 
+def UpdateNxversiosDB(repo_folder, collection_name='versions'): 
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
 
@@ -329,23 +329,3 @@ def UpdateNxversiosDB(db_folder, repo_folder, collection_name='versions'):
 
     #result isused by the bot to know if runing the check cicle for user is necessary or not
     return result
-
-
-def NotifyUsersUpdate(update_list):
-    """used to match new updates with ids users are currently monitoring"""
-    
-    notify_dict = {}
-    user_database = db.return_collection('user_data')
-    #TODO test what happen if there's no user data in the database
-    
-    for user_info in user_database:
-        user_id = user_info["_id"]
-        watching_list = []       
-        user_watching = user_info['watched_games']
-        for i in update_list:
-            if i['_id'] in user_watching or i['update_id'] in user_watching:
-                watching_list.append(i)
-        if len(watching_list) > 0:
-            notify_dict[user_id] = watching_list
-                
-    return notify_dict
