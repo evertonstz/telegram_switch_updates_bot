@@ -15,6 +15,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. """
 import os, sys
 import inspect
 import datetime
+import urllib.parse
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -34,12 +35,20 @@ if os.path.isfile(env_location):
     load_dotenv(dotenv_path=env_location)
 
 MONGO_URL, MONGO_PORT, MONGO_DBNAME = os.getenv("MONGO_URL"), os.getenv("MONGO_PORT"), os.getenv("MONGO_DBNAME")
+MONGO_USERNAME, MONGO_PASS = os.getenv("MONGO_USERNAME"), os.getenv("MONGO_PASS")  
 
 if MONGO_DBNAME in [None, '']:
     MONGO_DBNAME = 'telegram_switch_bot'
+
+if MONGO_USERNAME in [None, ""] or MONGO_PASS in [None, ""]:
+    client = MongoClient(MONGO_URL, int(MONGO_PORT))
+else:
+    username = urllib.parse.quote_plus(MONGO_USERNAME)
+    password = urllib.parse.quote_plus(MONGO_PASS)
     
+    client = MongoClient(f'mongodb://{username}:{password}@{MONGO_URL}:{MONGO_PORT}/')
     
-client = MongoClient(MONGO_URL, int(MONGO_PORT))
+
 data = client[MONGO_DBNAME]
 
 
