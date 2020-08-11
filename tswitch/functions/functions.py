@@ -223,8 +223,6 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
 def UpdateNxversiosDB(repo_folder, collection_name='versions'): 
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
-
-    db_location = f"{db_folder}/versions_database.db"
     
     logging.info(f'UPDATE VERSIONS: job started!')
     
