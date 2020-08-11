@@ -308,7 +308,9 @@ def list_watched(update: Update, context: CallbackContext):
         #no user_db, init one
         user_db = {"_id":user_id, 
                    'watched_games':[], 
-                   'options':{'mute':0}
+                   'options':{'mute':0,
+                              'notify_all':0
+                              }
                    }
         db.add_to_collection('user_data', user_db)
         stored_game_ids = []
@@ -372,7 +374,9 @@ def rm_games(update: Update, context: CallbackContext):
         #no user_db, init one
         user_db = {"_id":user_id, 
                    'watched_games':[], 
-                   'options':{'mute':0}
+                   'options':{'mute':0,
+                              'notify_all':0
+                              }
                    }
         db.add_to_collection('user_data', user_db)
         stored_game_ids = []
@@ -442,7 +446,9 @@ def add_games(update: Update, context: CallbackContext):
         #no user_db, init one
         user_db = {"_id":user_id, 
                    'watched_games':[], 
-                   'options':{'mute':0}
+                   'options':{'mute':0,
+                              'notify_all':0
+                              }
                    }
         db.add_to_collection('user_data', user_db)
         stored_game_ids = []
@@ -639,8 +645,8 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
