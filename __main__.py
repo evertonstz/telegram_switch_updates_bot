@@ -233,7 +233,6 @@ def get_user_id(update: Update):
 
 def parse_args_from_value(value):
     """parse arguments from value"""
-    #TODO more test is needed, maybe look for these IDs in the database to confirm a game exist
     value = value.partition(' ')[2].replace('\n',' ')
     value_list = []
     for i in [x for x in value.split(' ') if x != '']:
@@ -282,7 +281,6 @@ def stop(update: Update, context: CallbackContext):
 
 @send_typing_action
 def start(update: Update, context: CallbackContext):
-    #TODO make user options here, including exit and delete options
     update.message.reply_text(var.START_MESSAGE,
                               parse_mode=ParseMode.HTML)
 
@@ -651,6 +649,3 @@ def main():
 if __name__ == '__main__':
     print("press CTRL + C to cancel.")
     main()
-    
-# TODO migrate from sqlitedict and PicklePersistence to redis or mogonDB
-# TODO intead of user information, use context.bot_data on memory to prevent user abuse
