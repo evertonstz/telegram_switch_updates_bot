@@ -40,14 +40,15 @@ PUSHOVER_APIKEY = ajt2hdgHDgnfkkfoi6nv
 #bug reports will be also sent via Pushbullet if PUSHBULLET_DEBUG is True
 PUSHBULLET_DEBUG = True
 PUSHBULLET_ACESS_TOKEN = o.6jDjfofsy82f56fjv
-PUSHBULLET_DEVICES = Chrome
+#on PUSHBULLET_DEVICES separate multiple devices witn commas
+PUSHBULLET_DEVICES = Chrome, Xiaomi Mi A2
 
 #Notify run don't use any kind of keys, but needs to be autenticated manually: https://notify.run/
 #bug reports will be also sent via notify.run if NOTIFYRUN_DEBUG is True
 NOTIFYRUN_DEBUG = True
 
-#The user IDs here aren't limited by USER_LIMIT (ie: can subscribe in as many game IDs as they want, be cautious, separate them by comma
-#{TELEGRAM_ADM_CHATID} will only work if you set the TELEGRAM_ADM_CHATID above
+#The user IDs here aren't limited by USER_LIMIT (ie: can subscribe in as many game IDs as they want, be cautious. You can change this limit on the variables.py file
+#{TELEGRAM_ADM_CHATID} will only work if you set the TELEGRAM_ADM_CHATID above, separate multiple IDs by commas
 UNLIMITED_USERS = ${TELEGRAM_ADM_CHATID}, 122354466
 
 #The limit of how many search results will be retrieved to the user when using the /s command
@@ -66,6 +67,12 @@ TELEGRAM_ADM_CHATID, is only needed if TELEGRAM_DEBUG is True
 PUSHOVER_DEBUG, default value is False
 PUSHHOVER_USERKEY, is only needed if PUSHOVER_DEBUG is True
 PUSHOVER_APIKEY, is only needed if PUSHOVER_DEBUG is True
+
+PUSHBULLET_DEBUG, default value is False
+PUSHBULLET_ACESS_TOKEN, is only needed if PUSHBULLET_DEBUG is True
+PUSHBULLET_DEVICES, not needed, if PUSHBULLET_DEBUG is True and you don't provide a device, all your devices will be notified
+
+NOTIFYRUN_DEBUG, default is False
 
 UNLIMITED_USERS, default limits every user, including the adm
 
@@ -90,4 +97,4 @@ More settings are available in the `~/telegram_switch_updates_bot/tswitch/variab
 ### Starting bot
 After you have everything ready just run the __main__.py file: `python ~/telegram_switch_updates_bot/__main__.py`
 
-The bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates as especified at `variables.py` file), parsing should take some 5 minutes the first time. After that the bot should be working.
+The bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates, the interval is defined in the `variables.py` file), parsing should take some 5 minutes the first time. After that the bot should be working.
