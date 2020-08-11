@@ -306,18 +306,11 @@ def list_watched(update: Update, context: CallbackContext):
 
     if user_db == None:
         #no user_db, init one
-        user_db = {"_id":user_id, 
-                   'watched_games':[], 
-                   'options':{'mute':0,
-                              'notify_all':0
-                              }
-                   }
-        db.add_to_collection('user_data', user_db)
+        user_db = db.touch_user('user_data', user_id)
         stored_game_ids = []
     else:
         stored_game_ids = user_db['watched_games']
 
-    
     logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
 
     #printing results
@@ -372,13 +365,7 @@ def rm_games(update: Update, context: CallbackContext):
 
     if user_db == None:
         #no user_db, init one
-        user_db = {"_id":user_id, 
-                   'watched_games':[], 
-                   'options':{'mute':0,
-                              'notify_all':0
-                              }
-                   }
-        db.add_to_collection('user_data', user_db)
+        user_db = db.touch_user('user_data', user_id)
         stored_game_ids = []
     else:
         stored_game_ids = user_db['watched_games']
@@ -444,13 +431,7 @@ def add_games(update: Update, context: CallbackContext):
 
     if user_db == None:
         #no user_db, init one
-        user_db = {"_id":user_id, 
-                   'watched_games':[], 
-                   'options':{'mute':0,
-                              'notify_all':0
-                              }
-                   }
-        db.add_to_collection('user_data', user_db)
+        user_db = db.touch_user('user_data', user_id)
         stored_game_ids = []
     else:
         stored_game_ids = user_db['watched_games']

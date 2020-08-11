@@ -78,6 +78,19 @@ def update_collection(collection: str, new_dict: dict):
     #add date of last interation
     update_dict['last_interaction'] = datetime.datetime.now()
     return data[collection].update_one({'_id': new_dict['_id']}, {'$set': update_dict})
-    
+
+def touch_user(collection: str, user_id: str):
+        user_db = {"_id":user_id, 
+                   'watched_games':[], 
+                   'options':{'mute':0,
+                              'notify_all':0
+                              }
+                   }
+        res = add_to_collection(collection, user_db)
+        if res == user_id:
+            return user_db
+        else:
+            raise Exception('NotAddedToMongo')
+
 def list_collections():
     return data.list_collection_names()
