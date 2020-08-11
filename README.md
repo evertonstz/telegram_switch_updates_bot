@@ -1,14 +1,19 @@
 # Install
 Get the latest stable .zip or tar.gz from [releases](https://github.com/evertonstz/telegram_switch_updates_bot/releases) and extract it anywhere you want.
 ### MangoDB
-cd into it and up the docker-compose to get a woking instance of MangoDB and Mango Express. Ignore this step if you already have Mango in your server. On linux, if you already have docker and docker-compose and assuming the .zip was extracted at `~/telegram_switch_updates_bot`, this should as simple as:
+*This is only needed if you don't have MongoDB already in your server*
+
+Optional: edit the `docker-compose.yml` file with a new password and user. Default user is `root` and default password is `examples`
+
+On linux, if you already have docker and docker-compose and assuming the .zip was extracted at `~/telegram_switch_updates_bot`, this should as simple as:
 ```
 $ cd ~/telegram_switch_updates_bot
 # docker-compose up &
 ```
 
+
 ### Env variables
-Most configurations are passed to the bot via .env file. Create a .env text file in the bot's main folder (`./telegram_switch_updates_bot/.env`), these are the possible variables you can put there (with fake personal information ofc):
+Most configurations are passed to the bot via .env file. Create a .env text file in the bot's main folder (`~/telegram_switch_updates_bot/.env`), these are the possible variables you can put there (with fake personal information ofc):
 ```
 #Token for your telegram bot, this is the token Bot Father will give you
 TELEGRAM_TOKEN = 1000251511392:AHKkdhdgmfn-sdsda541-LaFfmfJqQnc
@@ -67,7 +72,7 @@ UNLIMITED_USERS, default limits every user, including the adm
 SEARCH_LIMIT, default is 10
 ```
 
-As an example, if you don't want any kind of bug report, unlimited users or custom search limit, your `./telegram_switch_updates_bot/.env` text file will look like this:
+As an example, if you don't want any kind of bug report, unlimited users or custom search limit, your `~/telegram_switch_updates_bot/.env` text file will look like this:
 ```
 #Token for your telegram bot, this is the token Bot Father will give you
 TELEGRAM_TOKEN = 1000251511392:AHKkdhdgmfn-sdsda541-LaFfmfJqQnc
@@ -80,6 +85,9 @@ MONGO_USERNAME = root
 MONGO_PASS = example
 ```
 
-More settings are available in the `./telegram_switch_updates_bot/tswitch/variables/variables.py`, those will eventually be migrated to a settings file.
+More settings are available in the `~/telegram_switch_updates_bot/tswitch/variables/variables.py`, those will eventually be migrated to a settings file.
 
-After you have everything ready just run the __main__.py file: `python __main__.py`, the bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates as especified at `variables.py` file), parsing should take some 5 minutes the first time. After that the bot should be working.
+### Starting bot
+After you have everything ready just run the __main__.py file: `python ~/telegram_switch_updates_bot/__main__.py`
+
+The bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates as especified at `variables.py` file), parsing should take some 5 minutes the first time. After that the bot should be working.
