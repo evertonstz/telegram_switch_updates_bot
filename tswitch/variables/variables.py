@@ -20,7 +20,7 @@ VERSION = '0.0.3'
 # Bot parameters
 VERSION_CHECKING_INTERVAL = 3600  #this is the interval in seconds NXVERSION will be checked by the JobQueue 
 TITLEDB_CHECKING_INTERVAL = 86400 #this is the interval in seconds TITLEDB will be checked by the JobQueue
-USER_LIMIT = 15
+USER_LIMIT = 50
 # github databases
 NXVERSION = 'https://github.com/16BitWonder/nx-versions'
 TITLEDB = 'https://github.com/RebirthOfficial/titledb'
