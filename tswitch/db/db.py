@@ -55,6 +55,10 @@ data = client[MONGO_DBNAME]
 def find(collection: str, search_dict: dict):
     return data[collection].find_one(search_dict)
 
+def search(collection: str, search_dict: dict, order_key: str):
+    found = list(data[collection].find(search_dict))
+    return sorted(found, key=lambda a: (a[order_key] in ['', None], a[order_key]))
+
 def return_collection(collection: str):
     return list(data[collection].find())
 

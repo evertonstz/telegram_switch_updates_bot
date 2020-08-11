@@ -19,6 +19,7 @@ import shutil
 import logging
 import pickle
 import distutils
+import re
 from json import load
 from os.path import isfile, isdir
 from distutils import util
@@ -99,6 +100,15 @@ def validate_unlimited_users(users: str):
     else:
         return []
 
+def validate_search_limit(limit: str):
+    if limit in [None, ''] or limit.isdigit() is False:
+        return 10
+    else:
+        return int(limit)
+
+def str_to_alphanum(string: str):
+    r = re.compile(r'[^\s\w_]+', re.UNICODE)
+    return r.sub('', string)
 
 def is_git_repo(path):
     if isdir(path):

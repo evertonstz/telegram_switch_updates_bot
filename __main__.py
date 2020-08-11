@@ -80,6 +80,8 @@ NOTIFYRUN_DEBUG = validate_notifyrun_debug(str_to_bool(os.getenv("NOTIFYRUN_DEBU
 
 UNLIMITED_USERS = validate_unlimited_users(os.getenv("UNLIMITED_USERS"))
 
+SEARCH_LIMIT = validate_search_limit(os.getenv("SEARCH_LIMIT"))
+
 #FUNCTIONS
 
 def PushNotif(context: CallbackContext, message: str, title: str, pushover_priority=-1):
@@ -283,6 +285,34 @@ def stop(update: Update, context: CallbackContext):
 def start(update: Update, context: CallbackContext):
     update.message.reply_text(var.START_MESSAGE,
                               parse_mode=ParseMode.HTML)
+
+@send_typing_action
+def search(update: Update, context: CallbackContext):
+    """search function"""
+    user_id = get_user_id(update)
+    value = update.message.text.partition(' ')[2].strip()
+    value = str_to_alphanum(value) #remove non alphanum but keep spaces
+
+    result = db.search('titledb', { "name" : {"$regex" : value, '$options' : 'i'}, "_id" : {"$regex" : '000$'} }, 'rank')
+    #TODO test if it's passing telegram's character limit for messages
+    if len(result) > 0:
+        #strip results
+        if len(result) > SEARCH_LIMIT:
+            result = result[:SEARCH_LIMIT]
+        
+        reply_text = "📺<b>Search Games</b>"
+        
+        for i in result:
+            reply_text += f"\n\n<code>{i['_id']}</code> - {i['name']}"
+            
+        update.message.reply_text(reply_text,
+                                  parse_mode=ParseMode.HTML)
+        
+    else:
+        update.message.reply_text("📺<b>Search Games</b>\nNo games found with the given keyword.",
+                                  parse_mode=ParseMode.HTML)
+        
+        
 
 # def broadcast(update: Update, context: CallbackContext):
 #     """broadcast message to every user"""
@@ -616,6 +646,10 @@ def main():
     dispatcher.add_handler(
         CommandHandler('l', list_watched)
     )
+    
+    dispatcher.add_handler(
+        CommandHandler('s', search)
+    ) #TODO deactivate in case SEARCH_LIMIT == 0
 
     #unknown command
     dispatcher.add_handler(
@@ -626,8 +660,8 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
