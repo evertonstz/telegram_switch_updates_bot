@@ -20,12 +20,11 @@ import logging
 import pickle
 import distutils
 import re
+import git
 from json import load
 from os.path import isfile, isdir
 from distutils import util
 
-from sqlitedict import SqliteDict
-import git
 
 import tswitch.variables as var
 import tswitch.db as db
@@ -119,16 +118,6 @@ def is_git_repo(path):
             return False
     else:
         return False
-
-def LoadTitleDB(db_folder, table_name='titledb'):
-    """load titledb from SqliteDict"""
-    db_location = f"{db_folder}/titledb_database.db"
-    db = {}
-    if isfile(db_location):
-        with SqliteDict(db_location, autocommit=False) as database:
-            db = database[table_name]
-    
-    return(db)
         
 #TODO remove db_folder
 def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
