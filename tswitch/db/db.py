@@ -16,7 +16,7 @@ import os, sys
 import inspect
 import datetime
 import urllib.parse
-from pymongo import MongoClient
+from pymongo import MongoClient, UpdateOne
 from dotenv import load_dotenv
 
 def get_script_dir(follow_symlinks=True):
@@ -82,10 +82,24 @@ def add_multiple_to_collection(collection: str, list_of_documents: list):
 def rm_from_collection(collection: str, user_id: str):
     return data[collection].delete_one({'_id':user_id})
 
+def update_multiple_documents(collection: str, new_documents: list, upsert=True):
+    list_of_writes = []
+    for document in new_documents:
+        list_of_writes.append(UpdateOne({'_id': document['_id']}, 
+                                        {'$setOnInsert': {'insertionDate':datetime.datetime.utcnow()},
+                                        '$set': document},
+                                        upsert=True
+                                        )
+                            )
+
+    return data[collection].bulk_write(list_of_writes)
+    
+
 def update_document(collection: str, query: dict, new_document: dict, upsert=True):
     res = data[collection].update_one(query, 
                                        {'$set': new_document}, 
-                                       upsert=upsert)
+                                       upsert=upsert
+                                       )
     return {'nModified':res.modified_count, 'upserted': res.upserted_id != None}
     
 
