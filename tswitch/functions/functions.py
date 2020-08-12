@@ -227,35 +227,29 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
     logging.info(f'UPDATE VERSIONS: job started!')
     
     # functions
-    def AddtoDB(list_versions):
-        """adds a the list of dirs to the current database
-        this is a example: list = [{"Base ID":"0100B5B00EF38800", "Update Name":"v131072", "Update ID":"0100B5B00EF38800"}]
-        """
-        #load json file
-        added_to_database = []
-        for game_dict in list_versions:
-            id = game_dict["_id"]
-            mongo_data = db.find(collection_name, {"_id":id})
-            if mongo_data is not None:
-                if 'last_interaction' in mongo_data:
-                    mong_data_last_interaction = mongo_data['last_interaction']
-                    mongo_data.pop('last_interaction')
-                else:
-                    mong_data_last_interaction = None
+    def AddtoDB(list_versions, first_run):
+        """adds a the list of dirs to the current database"""
+        
+        if first_run is True:
+            db.add_multiple_to_collection(collection_name, list_versions)
+            #return the entire database
+            return db.return_collection(collection_name)
+        else:
+            return_list = []
+            for game_dict in list_versions:
+                game_id = game_dict['_id']
+                new_game_version = game_dict['version_number']
+                res = db.update_document(collection_name, {'_id':game_id}, game_dict, )
+                
+                if res['nModified'] != 0 or res['upserted'] == True: #updated on Mongo
+                    if res['nModified'] != 0:
+                        logging.info(f'UPDATE VERSIONS [{game_id}]: updated to version v{new_game_version}')
+                    elif res['upserted'] == True:
+                        logging.info(f'UPDATE VERSIONS [{game_id}]: got first update to v{new_game_version}')
+                        
+                    return_list.append(game_dict)
             
-            #check if game_dict and mongo_data are the same
-            if game_dict != mongo_data:
-                if mongo_data is not None:
-                    #update on mongo
-                    logging.info(f'UPDATE VERSIONS: {id}, information updated on mongo')
-                    db.update_collection(collection_name, game_dict)
-                    added_to_database.append(game_dict)
-                else:
-                    #add to mongo
-                    logging.info(f'UPDATE VERSIONS: {id} added to mongo')
-                    db.add_to_collection(collection_name, game_dict)
-                    added_to_database.append(game_dict)
-        return added_to_database
+            return return_list
                 
     def VersionsToList(versions_text_string):
         return_list = []
@@ -272,8 +266,8 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
             except:
                 pass
         return return_list
-
-    #check if nx-versions repository is present, if not, clone it
+    
+    # check if nx-versions repository is present, if not, clone it
     rescan_db = False
     if isfile(repo_folder+"/versions.txt") is False or is_git_repo(repo_folder) is False or isdir(repo_folder) is False:
         #remove broken folder
@@ -302,11 +296,13 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
     else:
         logging.info(f"UPDATE VERSIONS [GIT]: no changes on nx-versions' remote detected.")
 
+    # rescan_db = True #REMOVER APENAS DEBUG
     
     #making database
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
-    first_run = True
+    # first_run = True #REMOVER APENAS DEBUG
+    
     #if there's no db file yet, parse entire versions.txt file
     #TODO don't notify users if it's first clone?
     result=[]
@@ -318,12 +314,11 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                 nx_versions_file = file.read()
                 
             if nx_versions_file is not False:
-                result = AddtoDB(VersionsToList(nx_versions_file))
-                logging.info(f'UPDATE VERSIONS: {len(result)} updates found in this run')
+                result = AddtoDB(VersionsToList(nx_versions_file), first_run)
+                # logging.info(f'UPDATE VERSIONS: {len(result)} updates found in this run')
             else:
                 logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
         else:
             logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
 
-    #result isused by the bot to know if runing the check cicle for user is necessary or not
     return result
