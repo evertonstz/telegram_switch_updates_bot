@@ -76,8 +76,18 @@ def add_to_collection(collection: str, new_dict: dict):
     new_dict['last_interaction'] = datetime.datetime.now()
     return data[collection].insert_one(new_dict).inserted_id
 
+def add_multiple_to_collection(collection: str, list_of_documents: list):
+    return data[collection].insert_many(list_of_documents)
+
 def rm_from_collection(collection: str, user_id: str):
     return data[collection].delete_one({'_id':user_id})
+
+def update_document(collection: str, query: dict, new_document: dict, upsert=True):
+    res = data[collection].update_one(query, 
+                                       {'$set': new_document}, 
+                                       upsert=upsert)
+    return {'nModified':res.modified_count, 'upserted': res.upserted_id != None}
+    
 
 def update_collection(collection: str, new_dict: dict):
     #remove id from update_dict
