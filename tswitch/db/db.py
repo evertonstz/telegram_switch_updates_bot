@@ -87,7 +87,8 @@ def update_multiple_documents(collection: str, new_documents: list, upsert=True)
     for document in new_documents:
         list_of_writes.append(UpdateOne({'_id': document['_id']}, 
                                         {'$setOnInsert': {'insertionDate':datetime.datetime.utcnow()},
-                                        '$set': document},
+                                        '$set': document
+                                        },
                                         upsert=True
                                         )
                             )
@@ -97,10 +98,12 @@ def update_multiple_documents(collection: str, new_documents: list, upsert=True)
 
 def update_document(collection: str, query: dict, new_document: dict, upsert=True):
     res = data[collection].update_one(query, 
-                                       {'$set': new_document}, 
+                                       {'$setOnInsert': {'insertionDate':datetime.datetime.utcnow()},
+                                        '$set': new_document
+                                        },
                                        upsert=upsert
                                        )
-    return {'nModified':res.modified_count, 'upserted': res.upserted_id != None}
+    return res
     
 
 def update_collection(collection: str, new_dict: dict):

@@ -202,11 +202,11 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     
     if commits_behind != 0:
         #means it's behind, pull from remote
-        logging.info(f'UPDATE {collection_name.upper()} [GIT]: changes on titledb's remote detected, pulling changes!")
+        logging.info(f"UPDATE {collection_name.upper()} [GIT]: changes on titledb's remote detected, pulling changes!")
         repo.remotes.origin.pull() # pulls the changes from github
         rescan_db = True
     else:
-        logging.info(f'UPDATE {collection_name.upper()} [GIT]: no changes on titledb's remote detected.")
+        logging.info(f"UPDATE {collection_name.upper()} [GIT]: no changes on titledb's remote detected.")
     
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
@@ -243,14 +243,18 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
             for game_dict in list_versions:
                 game_id = game_dict['_id']
                 new_game_version = game_dict['version_number']
-                res = db.update_document(collection_name, {'_id':game_id}, game_dict, )
+                #pop date
+                if 'insertionDate' in game_dict:
+                    game_dict.pop('insertionDate')
+                    
+                res = db.update_document(collection_name, {'_id':game_id}, game_dict)
                 
-                if res['nModified'] != 0 or res['upserted'] == True: #updated on Mongo
-                    if res['nModified'] != 0:
+                if res.raw_result['nModified'] > 0 or 'upserted' in res.raw_result: #updated on Mongo
+                    if res.raw_result['nModified'] > 0:
                         logging.info(f'UPDATE {collection_name.upper()} [{game_id}]: updated to version v{new_game_version}')
-                    elif res['upserted'] == True:
+                    else:
                         logging.info(f'UPDATE {collection_name.upper()} [{game_id}]: got first update to v{new_game_version}')
-                        
+                    
                     return_list.append(game_dict)
             
             return return_list
@@ -259,9 +263,9 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
         return_list = []
 
         for i in versions_text_string.split("\n"):
-            try:
-                if i.startswith("id|") or "|" not in i:
-                    raise()
+            if i.startswith("id|") or "|" not in i:
+                pass
+            else:
                 update_id, update_version_latest = i.split("|")
                 base_id = update_id[:-3]+"000"
                 if next((item for item in return_list if item['_id'] == base_id), None) is None:
@@ -269,10 +273,8 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                         return_list.append({"_id":base_id,
                                             "version_number":update_version_latest, 
                                             "update_id":update_id,
-                                            "insertionDate":datetime.datetime.utcnow() 
+                                            "insertionDate":datetime.datetime.utcnow()
                                             })
-            except:
-                pass
         return return_list
     
     # check if nx-versions repository is present, if not, clone it
@@ -303,7 +305,6 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
         rescan_db = True
     else:
         logging.info(f"UPDATE VERSIONS [GIT]: no changes on nx-versions' remote detected.")
-
     
     #making database
     #determine if it's first run
