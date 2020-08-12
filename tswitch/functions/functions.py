@@ -21,6 +21,7 @@ import pickle
 import distutils
 import re
 import git
+import datetime
 from json import load
 from os.path import isfile, isdir
 from distutils import util
@@ -123,59 +124,63 @@ def is_git_repo(path):
 def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     """function is used to build and interact with titledb database
     it's suposed to run every day, but the interval can be tweaked at variables.py"""
-    # db_location = f"{db_folder}/titledb_database.db"
     repo_file = f'{repo_folder}/titles.US.en.json'
     
-    logging.info(f'UPDATE TITLEDB: job started!')
+    logging.info(f'UPDATE {collection_name.upper()}: job started!')
 
-    def UpdateDB():
-        #TODO add option to change language
-        """adds a the list of dirs to the current database
-        """
-        #load json file
-        with open(f'{repo_folder}/titles.US.en.json') as file:
-            titledb_json = load(file)
+    def UpdateDB(first_run):
+        """adds a the list of dirs to the current database"""
         
-        for id in titledb_json:
-            game_dict = titledb_json[id]
-            if 'id' in game_dict:
-                game_dict.pop('id')
-            
-            mongo_data = db.find(collection_name, {"_id":id})
-            if mongo_data is not None:
-                if 'last_interaction' in mongo_data:
-                    mong_data_last_interaction = mongo_data['last_interaction']
-                    mongo_data.pop('last_interaction')
-                else:
-                    mong_data_last_interaction = None
+        def get_titledb():
+            #load json file
+            with open(f'{repo_folder}/titles.US.en.json') as file:
+                titledb_json = load(file)
                 
-            insertion = {
-                "_id": id,
-                "name": "",
-                "version": "",
-                "region": "",
-                "releaseDate": "",
-                "rating": "",
-                "publisher": "",
-                "description": "",
-                "size": "",
-                "rank": ""
-            }
-            
-            #update insertions game_dict
-            insertion.update(game_dict)
-            
-            #check if insertion and mongo_data are the same
-            if insertion != mongo_data:
-                if mongo_data is not None:
-                    #update on mongo
-                    logging.info(f'UPDATE TITLEDB: {id}, information updated on mongo')
-                    db.update_collection(collection_name, insertion)
-                else:
-                    #add to mongo
-                    # logging.info(f'UPDATE TITLEDB: {id} added to mongo')
-                    db.add_to_collection(collection_name, insertion)
+            #refactor titledb to mango format
+            res = []
+            for game_id in titledb_json:
+                game_dict = titledb_json[game_id]
 
+                try:
+                    game_dict['_id'] = game_dict.pop('id')
+                except KeyError:
+                    game_dict['_id'] = game_id
+                
+                insertion = {
+                    "_id": None,
+                    "name": None,
+                    "version": None,
+                    "region": None,
+                    "releaseDate": None,
+                    "rating": None,
+                    "publisher": None,
+                    "description": None,
+                    "size": None,
+                    "rank": None
+                }
+                
+                if first_run is True:
+                    insertion["insertionDate"] = datetime.datetime.utcnow()
+                    
+                insertion.update(game_dict)
+                
+                #update insert with game_dict
+                res.append(insertion)
+                
+            return res
+            
+        if first_run is True:
+            logging.info(f'UPDATE {collection_name.upper()} [first_run]: MangoDB is empty, populating it')
+            # add everything to mongo
+            db.add_multiple_to_collection(collection_name, get_titledb())
+            
+            return True
+        else:
+            #use bulk insert to insert new games into the database
+            ret = db.update_multiple_documents(collection_name, get_titledb())
+            
+            return ret.bulk_api_result['nUpserted'] > 0 or ret.bulk_api_result['nModified'] > 0
+                    
     #check if titledb repository is present, if not, clone it
     rescan_db = False
     if isfile(repo_file) is False or is_git_repo(repo_folder) is False or isdir(repo_folder) is False:
@@ -185,9 +190,9 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
         except:
             pass
         
-        logging.info(f'UPDATE TITLEDB [GIT]: cloning titledb to {repo_folder}')
+        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloning titledb to {repo_folder}')
         git.Repo.clone_from(var.TITLEDB, repo_folder)
-        logging.info(f'UPDATE TITLEDB [GIT]: cloned')
+        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloned')
         rescan_db = True
     
     #check if present repository is behind master
@@ -195,27 +200,24 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     repo.remotes.origin.fetch() 
     commits_behind = len(list(repo.iter_commits('master..origin/master')))
     
-    
     if commits_behind != 0:
         #means it's behind, pull from remote
-        logging.info(f"UPDATE TITLEDB [GIT]: changes on titledb's remote detected, pulling changes!")
-        repo.remotes.origin.pull()
+        logging.info(f'UPDATE {collection_name.upper()} [GIT]: changes on titledb's remote detected, pulling changes!")
+        repo.remotes.origin.pull() # pulls the changes from github
         rescan_db = True
     else:
-        logging.info(f"UPDATE TITLEDB [GIT]: no changes on titledb's remote detected.")
-
+        logging.info(f'UPDATE {collection_name.upper()} [GIT]: no changes on titledb's remote detected.")
     
-    #making database
-    #it'll parse the entire titledb_database.db every time a update is detected
-    result = False
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
     
+    # rescan_db = True #REMOVER APENAS DEBUG
+    # first_run = False #REMOVER APENAS DEBUG
+    
     if first_run is True or rescan_db is True:
         #update entire database
-        logging.info(f'UPDATE TITLEDB: adding titledb to MongoDB')
-        UpdateDB()
-        result = True
+        logging.info(f'UPDATE {collection_name.upper()}: adding titledb to MongoDB')
+        result = UpdateDB(first_run)
         
     return result
 
@@ -224,18 +226,20 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
     
-    logging.info(f'UPDATE VERSIONS: job started!')
+    logging.info(f'UPDATE {collection_name.upper()}: job started!')
     
     # functions
     def AddtoDB(list_versions, first_run):
         """adds a the list of dirs to the current database"""
         
         if first_run is True:
+            logging.info(f'UPDATE {collection_name.upper()} [first_run]: MangoDB is empty, populating it')
             db.add_multiple_to_collection(collection_name, list_versions)
             #return the entire database
             return db.return_collection(collection_name)
         else:
             return_list = []
+            
             for game_dict in list_versions:
                 game_id = game_dict['_id']
                 new_game_version = game_dict['version_number']
@@ -243,9 +247,9 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                 
                 if res['nModified'] != 0 or res['upserted'] == True: #updated on Mongo
                     if res['nModified'] != 0:
-                        logging.info(f'UPDATE VERSIONS [{game_id}]: updated to version v{new_game_version}')
+                        logging.info(f'UPDATE {collection_name.upper()} [{game_id}]: updated to version v{new_game_version}')
                     elif res['upserted'] == True:
-                        logging.info(f'UPDATE VERSIONS [{game_id}]: got first update to v{new_game_version}')
+                        logging.info(f'UPDATE {collection_name.upper()} [{game_id}]: got first update to v{new_game_version}')
                         
                     return_list.append(game_dict)
             
@@ -262,7 +266,11 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                 base_id = update_id[:-3]+"000"
                 if next((item for item in return_list if item['_id'] == base_id), None) is None:
                     if update_id.endswith("800"):
-                        return_list.append({"_id":base_id,"version_number":update_version_latest, "update_id":update_id})
+                        return_list.append({"_id":base_id,
+                                            "version_number":update_version_latest, 
+                                            "update_id":update_id,
+                                            "insertionDate":datetime.datetime.utcnow() 
+                                            })
             except:
                 pass
         return return_list
@@ -276,10 +284,10 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
         except:
             pass
         
-        logging.info(f'UPDATE VERSIONS [GIT]: cloning nx-versions to {repo_folder}')
+        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloning nx-versions to {repo_folder}')
         
         git.Repo.clone_from(var.NXVERSION, repo_folder)
-        logging.info(f'UPDATE VERSIONS [GIT]: cloned')
+        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloned')
         rescan_db = True
     
     #check if present repository is behind master
@@ -296,11 +304,12 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
     else:
         logging.info(f"UPDATE VERSIONS [GIT]: no changes on nx-versions' remote detected.")
 
-    # rescan_db = True #REMOVER APENAS DEBUG
     
     #making database
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
+    
+    # rescan_db = True #REMOVER APENAS DEBUG
     # first_run = True #REMOVER APENAS DEBUG
     
     #if there's no db file yet, parse entire versions.txt file
@@ -315,10 +324,10 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                 
             if nx_versions_file is not False:
                 result = AddtoDB(VersionsToList(nx_versions_file), first_run)
-                # logging.info(f'UPDATE VERSIONS: {len(result)} updates found in this run')
+                # logging.info(f'UPDATE {collection_name.upper()}: {len(result)} updates found in this run')
             else:
-                logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
+                logging.info(f'UPDATE {collection_name.upper()} [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
         else:
-            logging.info(f'UPDATE VERSIONS [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
+            logging.info(f'UPDATE {collection_name.upper()} [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
 
     return result
