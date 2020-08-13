@@ -213,7 +213,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     
     # rescan_db = True #REMOVER APENAS DEBUG
     # first_run = False #REMOVER APENAS DEBUG
-    
+    result = False
     if first_run is True or rescan_db is True:
         #update entire database
         logging.info(f'UPDATE {collection_name.upper()}: adding titledb to MongoDB')
