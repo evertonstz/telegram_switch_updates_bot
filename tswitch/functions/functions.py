@@ -119,7 +119,46 @@ def is_git_repo(path):
             return False
     else:
         return False
-        
+    
+def split_message(message, title, split_char='\n\n', max_char=3900):
+    #split message
+    message = message.split(split_char)
+    messages_list = []
+    message_str = ''
+    for index, line in enumerate(message):
+        if len(message_str) + len(title) + len(line) < max_char:
+            if index == 0:
+                message_str += f'{line}'
+            else:
+                message_str += f'{split_char}{line}'
+            if index+1 == len(message):
+                messages_list.append(message_str)
+        else:
+            messages_list.append(message_str)
+            message_str = f'{split_char}{line}'
+    #add message title an numbering
+    return_list = []
+    if len(messages_list) == 1:
+        return_list.append(f'{title}{messages_list[0]}')
+    else:
+        for index, line in enumerate(messages_list):
+            return_list.append(f'{title} [{index+1}\{len(messages_list)}]{line}')
+    return return_list
+
+def test_dict_key(dict, key):
+    if key not in dict:
+        if key == 'latestVersion' and key not in dict:
+            return '0'
+        elif key == 'name' and key not in dict:
+            return 'Unknown Name'
+        else:
+            return 'Unknown'
+    else:
+        if key == 'updateId' and 'latestVersion' not in dict:
+            return 'None'
+        else:
+            return dict[key]
+
 #TODO remove db_folder
 def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     """function is used to build and interact with titledb database
@@ -222,7 +261,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     return result
 
 
-def UpdateNxversiosDB(repo_folder, collection_name='versions'): 
+def UpdateNxversiosDB(repo_folder, collection_name='titledb'): 
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
     
@@ -242,7 +281,7 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
             
             for game_dict in list_versions:
                 game_id = game_dict['_id']
-                new_game_version = game_dict['version_number']
+                new_game_version = game_dict["latestVersion"]
                 #pop date
                 if 'insertionDate' in game_dict:
                     game_dict.pop('insertionDate')
@@ -261,8 +300,7 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                 
     def VersionsToList(versions_text_string):
         return_list = []
-
-        for i in versions_text_string.split("\n"):
+        for i in versions_text_string.split("\n"):         
             if i.startswith("id|") or "|" not in i:
                 pass
             else:
@@ -270,10 +308,10 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
                 base_id = update_id[:-3]+"000"
                 if next((item for item in return_list if item['_id'] == base_id), None) is None:
                     if update_id.endswith("800"):
-                        return_list.append({"_id":base_id,
-                                            "version_number":update_version_latest, 
-                                            "update_id":update_id,
-                                            "insertionDate":datetime.datetime.utcnow()
+                        return_list.append({"_id": base_id,
+                                            "updateId":update_id,
+                                            "latestVersion": update_version_latest,
+                                            "insertionDate": datetime.datetime.utcnow()
                                             })
         return return_list
     
@@ -309,6 +347,7 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
     #making database
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
+    print('rescan_db: ', rescan_db)
     
     # rescan_db = True #REMOVER APENAS DEBUG
     # first_run = True #REMOVER APENAS DEBUG
@@ -317,6 +356,7 @@ def UpdateNxversiosDB(repo_folder, collection_name='versions'):
     #TODO don't notify users if it's first clone?
     result=[]
     if first_run is True or rescan_db is True:
+        print(11111111111111)
         #update entire database
         nx_versions_file = False
         if isfile(repo_folder+"/versions.txt") is True:

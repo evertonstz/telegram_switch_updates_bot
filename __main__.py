@@ -302,13 +302,20 @@ def search(update: Update, context: CallbackContext):
             if len(result) > SEARCH_LIMIT:
                 result = result[:SEARCH_LIMIT]
             
-            reply_text = "📺<b>Search Games</b>"
-            
-            for i in result:
-                reply_text += f"\n<code>{i['_id']}</code> - {i['name']}"
-                
-            update.message.reply_text(reply_text,
-                                    parse_mode=ParseMode.HTML)
+            reply_text = ''
+            for game_dict in result:
+                reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+                # reply_text += f"\n<code>{i['_id']}</code> - {i['name']}"
+
+            messages_list = split_message(reply_text, "📺<b>Search Games</b>")
+
+    
+            for message in messages_list:
+                update.message.reply_text(message,
+                                        parse_mode=ParseMode.HTML)
+
+            # update.message.reply_text(reply_text,
+            #                         parse_mode=ParseMode.HTML)
             
         else:
             update.message.reply_text("📺<b>Search Games</b>\nNo games found with the given keyword.",
@@ -348,39 +355,14 @@ def list_watched(update: Update, context: CallbackContext):
 
     
     logging.info(f'USER REQUEST {user_id}: user asked for list_watched.')
-
-    def split_message(message, title, split_char='\n\n', max_char=3900):
-        #split message
-        message = message.split(split_char)
-        messages_list = []
-        message_str = ''
-        for index, line in enumerate(message):
-            if len(message_str) + len(title) + len(line) < max_char:
-                if index == 0:
-                    message_str += f'{line}'
-                else:
-                    message_str += f'{split_char}{line}'
-                if index+1 == len(message):
-                    messages_list.append(message_str)
-            else:
-                messages_list.append(message_str)
-                message_str = f'{split_char}{line}'
-        #add message title an numbering
-        return_list = []
-        if len(messages_list) == 1:
-            return_list.append(f'{title}{messages_list[0]}')
-        else:
-            for index, line in enumerate(messages_list):
-                return_list.append(f'{title} [{index+1}\{len(messages_list)}]{line}')
-        return return_list
-
+    
     #printing results
     if len(stored_game_ids) > 0:
         #load titledb for the IDs in stored_game_ids
         title_db = db.search('titledb', {'_id': {'$in':stored_game_ids}}, order_key='name' )
         reply_text = ''
         for game_dict in title_db: 
-            reply_text += f"\n\n<b>Name:</b> {game_dict['name']}\n<b>Base ID:</b> <code>{game_dict['_id']}</code>\n<b>Region:</b> {game_dict['region']}"
+            reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
             # reply_text += f"\n<code>{game_dict['_id']}</code> - {game_dict['name']} ({game_dict['region']})"
         
         if len(value) != 0:
@@ -606,7 +588,7 @@ def callback_nxversions(context: CallbackContext):
 
     
     # result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, 
-    #           {'_id': '010036A011302000', 'version_number': '24112', 'update_id': '010036A011302800'}]
+    #           {'_id': '0100EB6005E90000', 'version_number': '24112', 'update_id': '0100EB6005E90800'}]
     
     if len(result) > 0:
         logging.info(f'JobQueue [nx-versions]: calling user notification system')
@@ -625,29 +607,34 @@ def callback_nxversions(context: CallbackContext):
             for user_info in users_to_notify:
                 user_id = user_info['_id']
                 logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
-                reply_msg = '📺<b>New updates available</b>\n'
                 
                 #match games user is watching against games in the result list
                 notify_user_ids = list(set(user_info['watched_games']).intersection(result_ids))
                 
+                reply_text = ''
                 for index, base_id in enumerate(notify_user_ids):
                     
                     try:
-                        game_name = titledb[base_id]['name']
-                    except KeyError:
-                        game_name = 'UNKNOWN TITLE'
+                        game_dict = titledb[base_id]
+                    except:
+                        break
                                 
                     game_update_id = result_index_id[base_id]['update_id']
                     game_update_version = result_index_id[base_id]['version_number']
-                    
-                    if index > 0:
-                        reply_msg += '\n\n'
-                    reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{game_update_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
+           
+                    # if index > 0:
+                    #     reply_text += '\n\n'
+                    reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> {test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+
+                    # reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{game_update_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
                 
-                sleep(2) #time between each user notification to avoid hitting API limits                 
-                context.bot.send_message(chat_id=int(user_id), 
-                                        text=reply_msg,
-                                        parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
+                sleep(3) #time between each user notification to avoid hitting API limits
+                messages_list = split_message(reply_text, '📺<b>New updates available</b>')
+                
+                for message in messages_list:
+                    context.bot.send_message(chat_id=int(user_id), 
+                                            text=message,
+                                            parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
                                         
                 logging.info(f'JobQueue [nx-versions]: notified {user_id}')
                 
@@ -705,8 +692,8 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
