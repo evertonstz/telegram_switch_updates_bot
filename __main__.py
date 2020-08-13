@@ -346,23 +346,58 @@ def list_watched(update: Update, context: CallbackContext):
     else:
         stored_game_ids = user_db['watched_games']
 
-    logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
+    
+    logging.info(f'USER REQUEST {user_id}: user asked for list_watched.')
+
+    def split_message(message, title, split_char='\n\n', max_char=3900):
+        #split message
+        message = message.split(split_char)
+        messages_list = []
+        message_str = ''
+        for index, line in enumerate(message):
+            if len(message_str) + len(title) + len(line) < max_char:
+                if index == 0:
+                    message_str += f'{line}'
+                else:
+                    message_str += f'{split_char}{line}'
+                if index+1 == len(message):
+                    messages_list.append(message_str)
+            else:
+                messages_list.append(message_str)
+                message_str = f'{split_char}{line}'
+        #add message title an numbering
+        return_list = []
+        if len(messages_list) == 1:
+            return_list.append(f'{title}{messages_list[0]}')
+        else:
+            for index, line in enumerate(messages_list):
+                return_list.append(f'{title} [{index+1}\{len(messages_list)}]{line}')
+        return return_list
 
     #printing results
     if len(stored_game_ids) > 0:
-        reply_text = f"📺<b>The following game IDs are in your watch list</b>"
-        for i in stored_game_ids:
-            reply_text += f"\n<code>{i}</code>"
+        #load titledb for the IDs in stored_game_ids
+        title_db = db.search('titledb', {'_id': {'$in':stored_game_ids}}, order_key='name' )
+        reply_text = ''
+        for game_dict in title_db: 
+            reply_text += f"\n\n<b>Name:</b> {game_dict['name']}\n<b>Base ID:</b> <code>{game_dict['_id']}</code>\n<b>Region:</b> {game_dict['region']}"
+            # reply_text += f"\n<code>{game_dict['_id']}</code> - {game_dict['name']} ({game_dict['region']})"
+        
+        if len(value) != 0:
+            logging.info(f'USER REQUEST {user_id}: user called /l but provided arguments.')
+            reply_text += "\n\n<i>PSA: You provided arguments to /l and this is not needed, so next time just use /l</i>"
+        
+        messages_list = split_message(reply_text, f"📺<b>The following game IDs are in your watch list</b>")
+        
     else:
         logging.info(f'USER REQUEST {user_id}: user have no games in his watching list.')
-        reply_text = f"📺<b>No games found</b>\nSeems like you didn't add any games to your watch list, try adding them with the /a command"
+        messages_list = [f"📺<b>No games found</b>\nSeems like you didn't add any games to your watch list, try adding them with the /a command"]
     
-    if len(value) != 0:
-        logging.info(f'USER REQUEST {user_id}: user called /l but provided arguments.')
-        reply_text += "\n\n<i>PSA: You provided arguments to /l and this is not needed, so next time just use /l</i>"
     
-    update.message.reply_text(reply_text,
-                              parse_mode=ParseMode.HTML)
+    for message in messages_list:
+        update.message.reply_text(message,
+                                parse_mode=ParseMode.HTML)
+    
 
 @send_typing_action                               
 def rm_games(update: Update, context: CallbackContext):
@@ -670,8 +705,8 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
-    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
