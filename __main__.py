@@ -618,16 +618,9 @@ def callback_nxversions(context: CallbackContext):
                         game_dict = titledb[base_id]
                     except:
                         break
-                                
-                    game_update_id = result_index_id[base_id]['update_id']
-                    game_update_version = result_index_id[base_id]['version_number']
-           
-                    # if index > 0:
-                    #     reply_text += '\n\n'
-                    reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> {test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
 
-                    # reply_msg +=f"<b>{game_name}</b>\n<b>Base ID:</b> <code>{base_id}</code>\n<b>Update ID:</b> <code>{game_update_id}</code>\n<b>Latest version:</b> <code>v{game_update_version}</code>"
-                
+                    reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+
                 sleep(3) #time between each user notification to avoid hitting API limits
                 messages_list = split_message(reply_text, '📺<b>New updates available</b>')
                 

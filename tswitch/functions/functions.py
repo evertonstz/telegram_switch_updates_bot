@@ -347,7 +347,6 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
     #making database
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
-    print('rescan_db: ', rescan_db)
     
     # rescan_db = True #REMOVER APENAS DEBUG
     # first_run = True #REMOVER APENAS DEBUG
@@ -356,7 +355,6 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
     #TODO don't notify users if it's first clone?
     result=[]
     if first_run is True or rescan_db is True:
-        print(11111111111111)
         #update entire database
         nx_versions_file = False
         if isfile(repo_folder+"/versions.txt") is True:
