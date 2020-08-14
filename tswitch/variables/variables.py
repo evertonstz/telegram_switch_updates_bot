@@ -27,8 +27,7 @@ TITLEDB = 'https://github.com/RebirthOfficial/titledb'
 # NXVERSION = 'https://github.com/evertonstz/nx-versions'
 
 #message shown by /start
-START_MESSAGE = "Hi! This bot is still alpha, is kinda barebones and bugs are kinds expected. It checks every hour for new updates and every day for new titles in titleDB\n\n<b>What it can do:</b>\n➕Subscribe to any valid Game ID provided by the user\n➕Notify the user when any of his games in the watching list gets an update\
-                \n\n<b>To be implemented:</b>\n➖Receive full game metadata (for now, you can only see the game and update IDs when the bot notifies you about a new update) \
+START_MESSAGE = "Hi! This bot is still alpha, is kinda barebones and bugs are kinds expected. It checks every hour for new updates and every day for new titles in titleDB\n\n<b>What it can do:</b>\n➕Subscribe to any valid Game ID provided by the user\n➕Notify the user when any of his games in the watching list gets an update\n➕Search for Game IDs by providing a game name\n➕Full metadata support\
                 \n\n<b>Commands:</b> \
                 \n/a - add a game to your watching list, games can only be added by their GAME ID, multiple IDs must to be separated by a space \
                 \n\n/r - remove a game from your watching list, games can only be removed by their GAME ID, multiple IDs must to be separated by a space \
