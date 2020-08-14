@@ -444,6 +444,8 @@ def rm_games(update: Update, context: CallbackContext):
         
     if 'Removed from watch list' in reply_text:
         reply_text += "\n\n<i>You won't be getting notifications for</i> 🟢 <i>anymore!</i>"
+    else:
+        reply_text += "\n\nTo use /r you must provide at least one Game ID that's on your watch list, multiple IDs must to be separated by a space.\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>\n\n<i>PSA: Don't know the game's ID? Try using /l to list all the games you're currently wathing</i>"
     
     update.message.reply_text(reply_text,
                             parse_mode=ParseMode.HTML)
@@ -518,6 +520,8 @@ def add_games(update: Update, context: CallbackContext):
     
     if 'Added on watch list' in reply_text:
         reply_text += "\n\n<i>I'll let you know when</i> 🟢 <i>get new updates!</i>"
+    else:
+        reply_text += "\n\nTo use /a you must provide at least one valid Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>\n\n<i>PSA: Don't know the game's ID? Try searching a game's name with the /s command, the game ID will be in the results</i>"
         
     update.message.reply_text(reply_text,
                               parse_mode=ParseMode.HTML)
