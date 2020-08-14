@@ -393,7 +393,7 @@ def rm_games(update: Update, context: CallbackContext):
     
     if len(value_list) == 0:
         logging.info(f'USER REQUEST {user_id}: user called /r but provided no arguments.')
-        update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
+        update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space.\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>\n\n<i>PSA: Don't know the game's ID? Try using /l to list all the games you're currently wathing</i>",
                                   parse_mode=ParseMode.HTML)
         return
     if len(value_list) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
@@ -459,7 +459,7 @@ def add_games(update: Update, context: CallbackContext):
     
     if len(value_list) == 0:
         logging.info(f'USER REQUEST {user_id}: user called /a but provided no arguments.')
-        update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>",
+        update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>\n\n<i>PSA: Don't know the game's ID? Try searching a game's name with the /s command, the game ID will be in the results</i>",
                                   parse_mode=ParseMode.HTML)
         return
     if len(value_list) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
