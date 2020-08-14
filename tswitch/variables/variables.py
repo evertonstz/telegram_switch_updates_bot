@@ -32,5 +32,6 @@ START_MESSAGE = "Hi! This bot is still alpha, is kinda barebones and bugs are ki
                 \n/a - add a game to your watching list, games can only be added by their GAME ID, multiple IDs must to be separated by a space \
                 \n\n/r - remove a game from your watching list, games can only be removed by their GAME ID, multiple IDs must to be separated by a space \
                 \n\n/l - show the games that are in your watch list \
+                \n\n/s - search for a Game IDs using a game's name or a keyword \
                 \n\n/stop - stop the bot and removes you from my database, <b>YOUR WATCH LIST WILL BE DELETED!</b> If you ever come back you'll need to reenter your Game IDs \
                 \n\n\n<i>PSA: The bot should be able to notify me automatically for most bugs and erros, but feel free to contact me at:\nDiscord: Identify as chinese#6975</i>"

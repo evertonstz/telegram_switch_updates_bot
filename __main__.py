@@ -20,7 +20,7 @@ start - show the help message again
 a - add a game to your watching list
 r - remove a game from your watching list
 l - show the games that are in your watch list
-s - search for a Game ID using a game's name
+s - search for a Game IDs using a game's name or a keyword
 stop - stop the bot and removes you from my database, YOUR WATCH LIST WILL BE DELETED!
 """
 #IMPORTS
