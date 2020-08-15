@@ -1,3 +1,5 @@
+This bot is available and ready to be used at: https://t.me/switch_updates_bot
+
 # Install
 Get the latest stable .zip or tar.gz from [releases](https://github.com/evertonstz/telegram_switch_updates_bot/releases) and extract it anywhere you want.
 ### MangoDB
