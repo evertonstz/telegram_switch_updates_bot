@@ -178,33 +178,34 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
             #refactor titledb to mango format
             res = []
             for game_id in titledb_json:
-                game_dict = titledb_json[game_id]
+                if game_id.endswith('000'): #only insert game ids ending with 000
+                    game_dict = titledb_json[game_id]
 
-                try:
-                    game_dict['_id'] = game_dict.pop('id')
-                except KeyError:
-                    game_dict['_id'] = game_id
-                
-                insertion = {
-                    "_id": None,
-                    "name": None,
-                    "version": None,
-                    "region": None,
-                    "releaseDate": None,
-                    "rating": None,
-                    "publisher": None,
-                    "description": None,
-                    "size": None,
-                    "rank": None
-                }
-                
-                if first_run is True:
-                    insertion["insertionDate"] = datetime.datetime.utcnow()
+                    try:
+                        game_dict['_id'] = game_dict.pop('id')
+                    except KeyError:
+                        game_dict['_id'] = game_id
                     
-                insertion.update(game_dict)
-                
-                #update insert with game_dict
-                res.append(insertion)
+                    insertion = {
+                        "_id": None,
+                        "name": None,
+                        "version": None,
+                        "region": None,
+                        "releaseDate": None,
+                        "rating": None,
+                        "publisher": None,
+                        "description": None,
+                        "size": None,
+                        "rank": None
+                    }
+                    
+                    if first_run is True:
+                        insertion["insertionDate"] = datetime.datetime.utcnow()
+                        
+                    insertion.update(game_dict)
+                    
+                    #update insert with game_dict
+                    res.append(insertion)
                 
             return res
             
