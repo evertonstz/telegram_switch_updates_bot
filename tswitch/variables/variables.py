@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>. """
 VERSION = '0.0.4'
 
 # Bot parameters
-VERSION_CHECKING_INTERVAL = 3600  #this is the interval in seconds NXVERSION will be checked by the JobQueue 
+VERSION_CHECKING_INTERVAL = 43200  #this is the interval in seconds NXVERSION will be checked by the JobQueue 
 TITLEDB_CHECKING_INTERVAL = 86400 #this is the interval in seconds TITLEDB will be checked by the JobQueue
 USER_LIMIT = 50
 # github databases
