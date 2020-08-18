@@ -109,6 +109,22 @@ def PushNotif(context: CallbackContext, message: str, title: str, pushover_prior
             croped_title = title[:rm_index]
         else:
             croped_title = title
+
+        #trying to notify
+        try:
+            logging.info(f'ERROR HANDLER [pushover]: trying to send push notification')
+            client = Client(PUSHHOVER_USERKEY, 
+                            api_token=PUSHOVER_APIKEY)
+            
+            for index, croped_message in enumerate(message_list):
+                client.send_message(croped_message, 
+                                    title=f'{croped_title} [{index+1}/{len(message_list)}]', 
+                                    priority=pushover_priority)
+                sleep(1)
+                
+            logging.info(f'ERROR HANDLER [pushover]: push notification sent')
+        except Exception as e:
+            logging.info(f'ERROR HANDLER [pushover]: unable to send push notification {e}')
             
     if PUSHBULLET_DEBUG:
         #Ppushbullet seems to not limit messages, but I'll limit it to 10k characters just in case
@@ -231,8 +247,10 @@ def get_bot_data(context: CallbackContext):
 
 def get_user_id(update: Update):
     """get user id from update"""
-    user_id = str(update.message.from_user.id)      
-    return user_id
+    try:
+        return str(update.message.from_user.id)
+    except AttributeError:
+        return False
 
 def parse_args_from_value(value):
     """parse arguments from value"""
@@ -294,6 +312,7 @@ def search(update: Update, context: CallbackContext):
     value = update.message.text.partition(' ')[2].strip()
     value = str_to_alphanum(value) #remove non alphanum but keep spaces
     
+    logging.info(f'USER REQUEST {user_id}: user requested to search the database for {value}')
     if len(value) > 0:
         result = db.search('titledb', { "name" : {"$regex" : value, '$options' : 'i'}, "_id" : {"$regex" : '000$'} }, 'rank')
         #TODO test if it's passing telegram's character limit for messages
@@ -341,7 +360,13 @@ def search(update: Update, context: CallbackContext):
 @send_typing_action
 def list_watched(update: Update, context: CallbackContext):
     """used to return the current watch list to the user"""
+    logging.info(f'USER REQUEST: user asked for list_watched.')
+    
     user_id = get_user_id(update)
+    if user_id == False:
+        logging.warning("List watched: unable to get user_id, skipping")
+        return
+    
     value = update.message.text.partition(' ')[2]
 
     user_db = db.find('user_data', {"_id":user_id})
@@ -354,7 +379,6 @@ def list_watched(update: Update, context: CallbackContext):
         stored_game_ids = user_db['watched_games']
 
     
-    logging.info(f'USER REQUEST {user_id}: user asked for list_watched.')
     
     #printing results
     if len(stored_game_ids) > 0:
@@ -547,18 +571,23 @@ def error_handler(update: Update, context: CallbackContext):
     user_id = get_user_id(update)
     # Build the message with some markup and additional information about what happ ened.
     
-    message = f"An exception was raised while handling an update\nUser ID: {user_id}\n\n{tb}"
+    message = f"\n\n{tb}"
+    title = f'An exception was raised while handling an update\nUser ID: {user_id}'
 
+    #list of erros that won't notify the adm
     # Finally, send the message
-    PushNotif(context, message, 'Bug report', -1)
-    
+    not_notify_list = ['HTTPError']
+    if any(i in tb for i in not_notify_list) is False:
+        PushNotif(context, message, title, -1)
+
+
     # leting the user know
-    try:
-        if user_id != TELEGRAM_ADM_CHATID:
-            context.bot.send_message(chat_id=user_id, text="Oopsie, something went wrong on my side, I've reported the problem to my owner and he'll deal with it as soon as possible.")
-            logging.info(f'ERROR HANDLER: letting the user know there was a problem')
-    except Exception as e:
-        logging.info(f'ERROR HANDLER: failed to message the user: {e}')
+    # try:
+    #     if user_id != TELEGRAM_ADM_CHATID:
+    #         context.bot.send_message(chat_id=user_id, text="Oopsie, something went wrong on my side, I've reported the problem to my owner and he'll deal with it as soon as possible.")
+    #         logging.info(f'ERROR HANDLER: letting the user know there was a problem')
+    # except Exception as e:
+    #     logging.info(f'ERROR HANDLER: failed to message the user: {e}')
 
 #job queues
 def callback_titledb(context: CallbackContext):
