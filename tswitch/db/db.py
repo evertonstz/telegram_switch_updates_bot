@@ -58,7 +58,17 @@ def find(collection: str, search_dict: dict):
 def search(collection: str, search_dict: dict, order_key=None):
     found = list(data[collection].find(search_dict))
     if order_key != None:
-        return sorted(found, key=lambda a: (a[order_key] in ['', None], a[order_key]))
+        try:
+            return sorted(found, 
+                          key=lambda a: (a[order_key] in ['', None], a[order_key])
+                          )
+        except KeyError:
+            for item in found:
+                if order_key not in item:
+                    item.update({order_key:None})
+            return sorted(found, 
+                          key=lambda a: (a[order_key] in ['', None], a[order_key])
+                          )   
     else:
         return found
 
