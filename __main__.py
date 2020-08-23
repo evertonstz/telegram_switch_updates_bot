@@ -37,8 +37,8 @@ from tswitch.functions import *
 import tswitch.db as db
 
 # # external
-from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, PicklePersistence, CallbackContext
-from telegram import ParseMode, Update, ChatAction
+from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, CallbackContext, CallbackQueryHandler
+from telegram import ParseMode, Update, ChatAction, InlineKeyboardMarkup, InlineKeyboardButton
 # import telegram
 
 # Enable logging
@@ -278,6 +278,66 @@ def unknown(update: Update, context: CallbackContext):
     update.message.reply_text(response_message)
 
 @send_typing_action
+def settings(update: Update, context: CallbackContext):
+    """used to change user's preferences on notifications"""
+    user_id = get_user_id(update)
+    
+    value = update.message.text.partition(' ')[2]
+    value_list = [x for x in value.split(' ') if x != '']
+    
+    # Load old values
+    user_db = db.find('user_data', {"_id":user_id})
+    if user_db['options']['notify_all'] == 1: #user is already wathcing all
+        notify_all_keyboard = InlineKeyboardButton(text='Notify All [ON]', callback_data='notify_all_on')
+    else:
+        notify_all_keyboard = InlineKeyboardButton(text='Notify All [OFF]', callback_data='notify_all_off')
+    
+    if user_db['options']['mute'] == 1: #user is already muted
+        mute_keyboard = InlineKeyboardButton(text='Mute [ON]', callback_data='mute_on')
+    else:
+        mute_keyboard = InlineKeyboardButton(text='Mute [OFF]', callback_data='mute_off')
+
+    
+    keyboard = [[notify_all_keyboard, mute_keyboard],
+                [InlineKeyboardButton(text='Close Settings', callback_data='close_settings')]
+                ]
+    
+    markup = InlineKeyboardMarkup(keyboard)
+    
+    reply_text = "<b>⚙️Settings</b>\nThe follwing settings options are available:\
+                    \n\n<b>Notify All:</b> when this option is ON you'll receive notifications when ANY nintendo switch game gets a new update. When the option is OFF you'll only be notified when games in your watch list gets a new update (you can see these games at /l).\
+                    \n\n<b>Mute:</b> this will mute the bot and you won't be notified when a game gets new updates. This will also mute announcements from the bot admin\
+                    \n\n<b>Close Settings:</b> will close the settings, you can reopen settings again with /settings."
+    
+    update.message.reply_text(reply_text,
+                                parse_mode=ParseMode.HTML,
+                                reply_markup=markup
+                                )
+    
+    
+    # #printing results
+    # if len(value_list) == 0:
+    #     logging.info(f'USER REQUEST {user_id}: user requested notify settings.')
+    #     #set user notify_all to 1 on mongodb
+    #     res = db.update_document_gen('user_data', 
+    #                                     {'_id': user_id},
+    #                                     {'$set': {'options.notify_all': 1} }
+    #                                     )
+        
+    #     if res.modified_count > 0:
+    #         logging.info(f'USER REQUEST {user_id}: user will bypass watching list and be notified about every game.')
+    #         reply_text = "<b>Done!</b>\nYou'll now receive notifications about any Switch game that gets an update, if it becomes annoying to you, all you need to do is run /notifyall again and you'll come back to only being notified about games that are your waching list (you can add games there with /a and what's already there with /l)"
+    #     else:
+    #         reply_text = "<b>Whoaa, 
+    #     #remove user from mongo
+    #     a = db.rm_from_collection('user_data', user_id)
+    #     print(a.deleted_count)
+            
+    #     logging.info(f'USER REQUEST {user_id}: user removed from database.')
+    #     update.message.reply_text(reply_text, 
+    #                             parse_mode=ParseMode.HTML)
+            
+@send_typing_action
 def stop(update: Update, context: CallbackContext):
     """used to remove user from database, can only be toggled by user request"""
     user_id = get_user_id(update)
@@ -302,6 +362,7 @@ def stop(update: Update, context: CallbackContext):
 
 @send_typing_action
 def start(update: Update, context: CallbackContext):
+    #TODO move user database creation from other functions into start!
     update.message.reply_text(var.START_MESSAGE,
                               parse_mode=ParseMode.HTML)
 
@@ -589,6 +650,54 @@ def error_handler(update: Update, context: CallbackContext):
     # except Exception as e:
     #     logging.info(f'ERROR HANDLER: failed to message the user: {e}')
 
+def button(update, context):
+    query = update.callback_query
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
+    query.answer()
+    
+    user_id = str(query.from_user.id)
+    
+    q_data = format(query.data)
+    print('q_data: ', q_data)
+    
+    if q_data == 'notify_all_on':
+        #turn off notify all
+        res = db.update_document_gen('user_data', 
+                                        {'_id': user_id},
+                                        {'$set': {'options.notify_all': 0} }
+                                        )
+        
+        reply_text = "<b>Done!</b>\nYou'll now only receive notifications for games that are in your watching list.\nYou can see these games with /l, add more games to that list with /a and remove with /r"
+    elif q_data == 'notify_all_off':
+        res = db.update_document_gen('user_data', 
+                                        {'_id': user_id},
+                                        {'$set': {'options.notify_all': 1} }
+                                        )
+        reply_text = "<b>Done!</b>\nYou'll be notified when a new update for any Nitendo Switch game comes out.\n\n<i>PSA:Keep in mind you could receive multiple notifications per day, this might become annoying pretty quickly! In case that happens all you need to is disable this feature on /settings</i>"
+    
+    if q_data == 'mute_on':
+        #turn off notify all
+        res = db.update_document_gen('user_data', 
+                                        {'_id': user_id},
+                                        {'$set': {'options.mute': 0} }
+                                        )
+        
+        reply_text = "<b>Done!</b>\nBot will start sending you messages about game updates again!"
+    elif q_data == 'mute_off':
+        res = db.update_document_gen('user_data', 
+                                        {'_id': user_id},
+                                        {'$set': {'options.mute': 1} }
+                                        )
+        reply_text = "<b>Done!</b>\nBot will stop sending you messages about game updates!\n\n<i>PSA: Keep in mind this option will only prevent the bot from messaging you, if you want to receive messages again you can unmute it on /settings, if you want to stop the bot and delete your data from the server for ever, use /stop</i>"
+    
+    if q_data == 'close_settings':
+        reply_text = "<b>⚙️Settings Closed</b>\nYou can reopen it again with /settings"
+    
+    query.edit_message_text(text=reply_text,
+                            parse_mode=ParseMode.HTML
+                            )
+
 #job queues
 def callback_titledb(context: CallbackContext):
     """this is the callack for titledb's job queue"""  
@@ -709,17 +818,26 @@ def main():
         CommandHandler('s', search)
     ) #TODO deactivate in case SEARCH_LIMIT == 0
 
+    dispatcher.add_handler(
+        CommandHandler('settings', settings)
+    )
+    
     #unknown command
     dispatcher.add_handler(
         MessageHandler(Filters.command, unknown)
     )
 
+    dispatcher.add_handler(
+        CallbackQueryHandler(button)
+        )
+
+    
     # log all errors
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
-    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 

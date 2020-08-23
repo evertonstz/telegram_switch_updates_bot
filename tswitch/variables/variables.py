@@ -27,11 +27,12 @@ TITLEDB = 'https://github.com/RebirthOfficial/titledb'
 # NXVERSION = 'https://github.com/evertonstz/nx-versions'
 
 #message shown by /start
-START_MESSAGE = "Hi! This bot is still alpha, is kinda barebones and bugs are kinds expected. It checks every hour for new updates and every day for new titles in titleDB\n\n<b>What it can do:</b>\n➕Subscribe to any valid Game ID provided by the user\n➕Notify the user when any of his games in the watching list gets an update\n➕Search for Game IDs by providing a game name\n➕Full metadata support\
+START_MESSAGE = "<b>What this bot can do:</b>\n➕Subscribe to any valid Game ID provided by the user\n➕Notify the user when any of his games in the watching list gets an update\n➕Search for Game IDs by providing a game name\n➕Full metadata support\
                 \n\n<b>Commands:</b> \
                 \n/a - add a game to your watching list, games can only be added by their GAME ID, multiple IDs must to be separated by a space \
                 \n\n/r - remove a game from your watching list, games can only be removed by their GAME ID, multiple IDs must to be separated by a space \
                 \n\n/l - show the games that are in your watch list \
                 \n\n/s - search for a Game IDs using a game's name or a keyword \
                 \n\n/stop - stop the bot and removes you from my database, <b>YOUR WATCH LIST WILL BE DELETED!</b> If you ever come back you'll need to reenter your Game IDs \
-                \n\n\n<i>PSA: The bot should be able to notify me automatically for most bugs and erros, but feel free to contact me at:\nDiscord: Identify as chinese#6975</i>"
+                \n\nThis bot is open sourced under GNU/GLP3 and respects your privacy, it's made out of love for the Nintendo Switch system, liberty of software/hardware and necessity, the source code is available at: https://github.com/evertonstz/telegram_switch_updates_bot \
+                \n\nIf you have any lasting problems with this software, fell free to open a github issue or contact me @evertonstz or on discord <i>Identify as chinese#6975</i>"

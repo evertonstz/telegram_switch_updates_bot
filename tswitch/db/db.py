@@ -106,7 +106,11 @@ def update_multiple_documents(collection: str, new_documents: list, upsert=True)
     return data[collection].bulk_write(list_of_writes)
     
 
-def update_document(collection: str, query: dict, new_document: dict, upsert=True):
+def update_document_gen(collection: str, query: dict, criteria:dict, upsert: bool = False):
+    res = data[collection].update_one(query, criteria, upsert=upsert)
+    return res
+
+def update_document(collection: str, query: dict, new_document: dict, upsert: bool = True):
     res = data[collection].update_one(query, 
                                        {'$setOnInsert': {'insertionDate':datetime.datetime.utcnow()},
                                         '$set': new_document
