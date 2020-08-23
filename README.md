@@ -99,4 +99,4 @@ More settings are available in the `~/telegram_switch_updates_bot/tswitch/variab
 ### Starting bot
 After you have everything ready just run the __main__.py file: `python ~/telegram_switch_updates_bot/__main__.py`
 
-The bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates, the interval is defined in the `variables.py` file), parsing should take some 5 minutes the first time. After that the bot should be working.
+The bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates, the interval is defined in the `variables.py` file), parsing should take some ~~5 minutes~~ seconds. After that the bot should be working.
