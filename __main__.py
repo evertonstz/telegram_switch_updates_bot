@@ -405,18 +405,28 @@ def search(update: Update, context: CallbackContext):
         
         
 
-# def broadcast(update: Update, context: CallbackContext):
-#     """broadcast message to every user"""
-#     user_id = get_user_id(update)
-#     #only run if chat id is adm
-#     if user_id == TELEGRAM_ADM_CHATID:
-#         value = update.message.text.partition(' ')[2]
-#         # Load chat values
-            # try:
-            #     stored_game_ids = get_bot_data(context)[user_id]
-            # except KeyError:
-            #     stored_game_ids = []
-                
+def broadcast(update: Update, context: CallbackContext):
+    """broadcast message to every user"""
+    adm_id = get_user_id(update)
+    #only run if chat id is adm
+    if adm_id == TELEGRAM_ADM_CHATID:
+        value = update.message.text.partition(' ')[2]
+        
+        #get all user ids in database
+        user_id_list = [x['_id'] for x in db.return_collection('user_data')]
+        if len(user_id_list) > 0:
+            for user_id in user_id_list:
+                context.bot.send_message(chat_id=int(user_id), 
+                                        text=f'📣<b>Admin Announcement</b>\n\n{value}',
+                                        parse_mode=ParseMode.HTML)
+                logging.info(f'ADM BROADCAST {user_id}: message sent')
+                sleep(2)
+    else:
+        update.message.reply_text(f"📺<b>Whoah there</b>\nHeeey, this is a secret feature, but unfortunally only admins can use it...\nBut you can have this cat: 🐈",
+                                  parse_mode=ParseMode.HTML)
+                                      
+            
+        
 @send_typing_action
 def list_watched(update: Update, context: CallbackContext):
     """used to return the current watch list to the user"""
@@ -790,9 +800,9 @@ def main():
     #start command
     #TODO respond with a help text
     #TODO implement broadcast for adms
-    # dispatcher.add_handler(
-    #     CommandHandler('broad', broadcast)
-    # )
+    dispatcher.add_handler(
+        CommandHandler('broad', broadcast)
+    )
     
     dispatcher.add_handler(
         CommandHandler('start', start)
