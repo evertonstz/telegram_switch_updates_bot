@@ -33,6 +33,7 @@ START_MESSAGE = "<b>What this bot can do:</b>\n➕Subscribe to any valid Game ID
                 \n\n/r - remove a game from your watching list, games can only be removed by their GAME ID, multiple IDs must to be separated by a space \
                 \n\n/l - show the games that are in your watch list \
                 \n\n/s - search for a Game IDs using a game's name or a keyword \
-                \n\n/stop - stop the bot and removes you from my database, <b>YOUR WATCH LIST WILL BE DELETED!</b> If you ever come back you'll need to reenter your Game IDs \
+                \n\n/settings - bot settings \
+                \n\n/stop - stop the bot and removes you from my database, <b>YOUR WATCH LIST WILL BE DELETED!</b> If you ever come back you'll need to reenter your Game IDs and settings \
                 \n\nThis bot is open sourced under GNU/GLP3 and respects your privacy, it's made out of love for the Nintendo Switch system, liberty of software/hardware and necessity, the source code is available at: https://github.com/evertonstz/telegram_switch_updates_bot \
                 \n\nIf you have any lasting problems with this software, fell free to open a github issue or contact me @evertonstz or on discord <i>Identify as chinese#6975</i>"

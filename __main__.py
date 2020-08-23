@@ -21,7 +21,7 @@ a - add a game to your watching list
 r - remove a game from your watching list
 l - show the games that are in your watch list
 s - search for a Game IDs using a game's name or a keyword
-stop - stop the bot and removes you from my database, YOUR WATCH LIST WILL BE DELETED!
+settings - bot settings 
 """
 #IMPORTS
 import traceback
@@ -277,7 +277,6 @@ def unknown(update: Update, context: CallbackContext):
     response_message = "Unknown command..."
     update.message.reply_text(response_message)
 
-@send_typing_action
 def settings(update: Update, context: CallbackContext):
     """used to change user's preferences on notifications"""
     user_id = get_user_id(update)
@@ -287,6 +286,11 @@ def settings(update: Update, context: CallbackContext):
     
     # Load old values
     user_db = db.find('user_data', {"_id":user_id})
+    
+    if user_db == None:
+        #no user_db, init one
+        user_db = db.touch_user('user_data', user_id)
+    
     if user_db['options']['notify_all'] == 1: #user is already wathcing all
         notify_all_keyboard = InlineKeyboardButton(text='Notify All [ON]', callback_data='notify_all_on')
     else:
@@ -345,20 +349,15 @@ def stop(update: Update, context: CallbackContext):
     value = update.message.text.partition(' ')[2]
     value_list = [x for x in value.split(' ') if x != '']
     #printing results
-    if len(value_list) == 0:
-        update.message.reply_text("<b>ATENTION! Ths will delete your current watch list and stop the bot!</b>\nIf that's what you want, send the bot this:\n<code>/stop yes</code>", 
-                                  parse_mode=ParseMode.HTML)
-    else:
-        if value_list[0] == 'yes':
-            logging.info(f'USER REQUEST {user_id}: user requested to be removed from database.')
-            
-            #remove user from mongo
-            a = db.rm_from_collection('user_data', user_id)
-            print(a.deleted_count)
-                
-            logging.info(f'USER REQUEST {user_id}: user removed from database.')
-            update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
-                                  parse_mode=ParseMode.HTML)
+    logging.info(f'USER REQUEST {user_id}: user requested to be removed from database.')
+    
+    #remove user from mongo
+    a = db.rm_from_collection('user_data', user_id)
+    print(a.deleted_count)
+        
+    logging.info(f'USER REQUEST {user_id}: user removed from database.')
+    update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
+                            parse_mode=ParseMode.HTML)
 
 @send_typing_action
 def start(update: Update, context: CallbackContext):
@@ -653,13 +652,11 @@ def error_handler(update: Update, context: CallbackContext):
 def button(update, context):
     query = update.callback_query
     # CallbackQueries need to be answered, even if no notification to the user is needed
-    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
     query.answer()
     
     user_id = str(query.from_user.id)
     
     q_data = format(query.data)
-    print('q_data: ', q_data)
     
     if q_data == 'notify_all_on':
         #turn off notify all
@@ -674,6 +671,7 @@ def button(update, context):
                                         {'_id': user_id},
                                         {'$set': {'options.notify_all': 1} }
                                         )
+        
         reply_text = "<b>Done!</b>\nYou'll be notified when a new update for any Nitendo Switch game comes out.\n\n<i>PSA:Keep in mind you could receive multiple notifications per day, this might become annoying pretty quickly! In case that happens all you need to is disable this feature on /settings</i>"
     
     if q_data == 'mute_on':
@@ -689,10 +687,11 @@ def button(update, context):
                                         {'_id': user_id},
                                         {'$set': {'options.mute': 1} }
                                         )
+        
         reply_text = "<b>Done!</b>\nBot will stop sending you messages about game updates!\n\n<i>PSA: Keep in mind this option will only prevent the bot from messaging you, if you want to receive messages again you can unmute it on /settings, if you want to stop the bot and delete your data from the server for ever, use /stop</i>"
     
     if q_data == 'close_settings':
-        reply_text = "<b>⚙️Settings Closed</b>\nYou can reopen it again with /settings"
+        reply_text = "<b>⚙️Settings Closed</b>\nTo open it again use /settings"
     
     query.edit_message_text(text=reply_text,
                             parse_mode=ParseMode.HTML
@@ -737,7 +736,7 @@ def callback_nxversions(context: CallbackContext):
         
         result_ids = [x['_id'] for x in result]
         result_index_id = {x['_id']:x for x in result}
-        users_to_notify = db.search('user_data', {'watched_games': { '$in': result_ids } })
+        users_to_notify = db.search('user_data', {'$or':[ {'watched_games': { '$in': result_ids }}, {'options.notify_all': {'$eq':1}} ]})
         
         logging.info(f'JobQueue [nx-versions]: {len(users_to_notify)} users to notify')
 
@@ -747,31 +746,35 @@ def callback_nxversions(context: CallbackContext):
             titledb = {x['_id']:x for x in games_data if x is not None}
             
             for user_info in users_to_notify:
-                user_id = user_info['_id']
-                logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
-                
-                #match games user is watching against games in the result list
-                notify_user_ids = list(set(user_info['watched_games']).intersection(result_ids))
-                
-                reply_text = ''
-                for index, base_id in enumerate(notify_user_ids):
+                if user_info['options']['mute'] == 0:
+                    user_id = user_info['_id']
+                    logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
                     
-                    try:
-                        game_dict = titledb[base_id]
-                    except:
-                        break
+                    #match games user is watching against games in the result list
+                    if user_info['options']['notify_all'] == 0:
+                        notify_user_ids = list(set(user_info['watched_games']).intersection(result_ids))
+                    else:
+                        notify_user_ids = result_ids
+                    
+                    reply_text = ''
+                    for index, base_id in enumerate(notify_user_ids):
+                        
+                        try:
+                            game_dict = titledb[base_id]
+                        except:
+                            break
 
-                    reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+                        reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
 
-                sleep(3) #time between each user notification to avoid hitting API limits
-                messages_list = split_message(reply_text, '📺<b>New updates available</b>')
-                
-                for message in messages_list:
-                    context.bot.send_message(chat_id=int(user_id), 
-                                            text=message,
-                                            parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
-                                        
-                logging.info(f'JobQueue [nx-versions]: notified {user_id}')
+                    messages_list = split_message(reply_text, '📺<b>New updates available</b>')
+                    
+                    sleep(3) #time between each user notification to avoid hitting API limits
+                    for message in messages_list:
+                        context.bot.send_message(chat_id=int(user_id), 
+                                                text=message,
+                                                parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
+                                            
+                    logging.info(f'JobQueue [nx-versions]: notified {user_id}')
                 
     
     logging.info(f'JobQueue [nx-versions]: end') 
@@ -836,8 +839,8 @@ def main():
     dispatcher.add_error_handler(error_handler)
 
     # add JobQueue for nx-versions and titledb
-    # job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
-    # job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
+    job_titledb = job.run_repeating(callback_titledb, interval=var.TITLEDB_CHECKING_INTERVAL, first=0)
+    job_nxversions = job.run_repeating(callback_nxversions, interval=var.VERSION_CHECKING_INTERVAL, first=0)
     
     updater.start_polling()
 
