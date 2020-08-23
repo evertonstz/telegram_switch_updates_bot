@@ -416,11 +416,15 @@ def broadcast(update: Update, context: CallbackContext):
         user_id_list = [x['_id'] for x in db.return_collection('user_data')]
         if len(user_id_list) > 0:
             for user_id in user_id_list:
-                context.bot.send_message(chat_id=int(user_id), 
-                                        text=f'📣<b>Admin Announcement</b>\n\n{value}',
-                                        parse_mode=ParseMode.HTML)
-                logging.info(f'ADM BROADCAST {user_id}: message sent')
-                sleep(2)
+                try:
+                    context.bot.send_message(chat_id=int(user_id), 
+                                            text=f'📣<b>Admin Announcement</b>\n\n{value}',
+                                            parse_mode=ParseMode.HTML)
+                    logging.info(f'ADM BROADCAST {user_id}: message sent')
+                    sleep(2)
+                except:
+                    #TODO this might be a good way to know if an user is still active or not
+                    pass
     else:
         update.message.reply_text(f"📺<b>Whoah there</b>\nHeeey, this is a secret feature, but unfortunally only admins can use it...\nBut you can have this cat: 🐈",
                                   parse_mode=ParseMode.HTML)
