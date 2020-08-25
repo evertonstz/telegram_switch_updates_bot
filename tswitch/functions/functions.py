@@ -147,15 +147,17 @@ def split_message(message, title, split_char='\n\n', max_char=3900):
 
 def test_dict_key(dict, key):
     if key not in dict:
-        if key == 'latestVersion' and key not in dict:
+        if key == 'latestVersion':
             return '0'
-        elif key == 'name' and key not in dict:
+        elif key == 'name':
             return 'Unknown Name'
         else:
             return 'Unknown'
     else:
         if key == 'updateId' and 'latestVersion' not in dict:
             return 'None'
+        elif key == 'name' and dict[key] == None:
+            return 'Unknown Name'
         else:
             return dict[key]
 
