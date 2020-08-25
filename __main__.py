@@ -277,7 +277,7 @@ def unknown(update: Update, context: CallbackContext):
     response_message = "Unknown command..."
     update.message.reply_text(response_message)
 
-def settings(update: Update, context: CallbackContext):
+def settings(update: Update, context: CallbackContext): #TODO add more logs here
     """used to change user's preferences on notifications"""
     user_id = get_user_id(update)
     
@@ -432,7 +432,7 @@ def broadcast(update: Update, context: CallbackContext):
             
         
 @send_typing_action
-def list_watched(update: Update, context: CallbackContext):
+def list_watched(update: Update, context: CallbackContext): #TODO add PSA in case notify all is acitve
     """used to return the current watch list to the user"""
     logging.info(f'USER REQUEST: user asked for list_watched.')
     
