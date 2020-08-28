@@ -100,3 +100,15 @@ More settings are available in the `~/telegram_switch_updates_bot/tswitch/variab
 After you have everything ready just run the __main__.py file: `python ~/telegram_switch_updates_bot/__main__.py`
 
 The bot will automatically clone the necessary nx-versions and titledb repositories and parse them into MangoDB (they'll be checked every now and them for updates, the interval is defined in the `variables.py` file), parsing should take some ~~5 minutes~~ seconds. After that the bot should be working.
+
+### Privacy and data collection
+Privacy is very important to me, so all my projects try to respect user's privacy as much as possible by collection only the bare minimum necessary to make the project work, here's what this bot stores about its users:
+
+- Telegram User ID: this is the only user information I store, this ID is unique for every user, it's used to identify users and save their options in the database. I don't store user names, phone numbers, etc;
+
+- Subscribed Game IDs: everytime the user subscribe to a game, it's stored in the database. If the user unsubscribe from a game ID, it's removed from there. This information is stored under the user's User ID;
+
+- User settings: if the user changes any settings in the bot, this is also stored in the database under the User ID.
+
+When the user runs /stop, the bot will make sure to delete every single bit of information from the user from the database, including his User ID. My server has a 7 days backup retention, so the user info will stay in my server for around 7 days, after that its completely gone.
+
