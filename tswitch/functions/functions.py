@@ -119,7 +119,19 @@ def is_git_repo(path):
             return False
     else:
         return False
-    
+
+def version_decimal(version: str):
+    version_in_bits = "{0:{fill}{width}b}".format(int(version), fill="0", width=32)
+    major = int(version_in_bits[0:6], base=2) 
+    major |= 1
+    minor = int(version_in_bits[6:12], base=2)
+    micro = int(version_in_bits[12:16], base=2)
+    bugfix = int(version_in_bits[16:32], base=2)
+    version_in_list = [major,minor,micro]
+    if(bugfix > 0):
+      version_in_list.append(bugfix)
+    return ".".join(str(x) for x in version_in_list)
+
 def split_message(message, title, split_char='\n\n', max_char=3900):
     #split message
     message = message.split(split_char)
