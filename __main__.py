@@ -383,7 +383,7 @@ def search(update: Update, context: CallbackContext):
             
             reply_text = ''
             for game_dict in result:
-                reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+                reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{version_decimal({test_dict_key(game_dict, 'latestVersion')})}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
                 # reply_text += f"\n<code>{i['_id']}</code> - {i['name']}"
 
             messages_list = split_message(reply_text, "📺<b>Search Games</b>")
@@ -460,7 +460,7 @@ def list_watched(update: Update, context: CallbackContext): #TODO add PSA in cas
         title_db = db.search('titledb', {'_id': {'$in':stored_game_ids}}, order_key='name' )
         reply_text = ''
         for game_dict in title_db: 
-            reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+            reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{version_decimal({test_dict_key(game_dict, 'latestVersion')})}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
             # reply_text += f"\n<code>{game_dict['_id']}</code> - {game_dict['name']} ({game_dict['region']})"
         
         if len(value) != 0:
@@ -778,7 +778,7 @@ def callback_nxversions(context: CallbackContext):
                         except:
                             break
 
-                        reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{test_dict_key(game_dict, 'latestVersion')}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
+                        reply_text += f"\n\n<b>Name:</b> {test_dict_key(game_dict, 'name')}\n<b>Base Game ID:</b> <code>{test_dict_key(game_dict, '_id')}</code>\n<b>Update ID:</b> <code>{test_dict_key(game_dict, 'updateId')}</code>\n<b>Latest Version:</b> v{version_decimal({test_dict_key(game_dict, 'latestVersion')})}\n<b>Region:</b> {test_dict_key(game_dict, 'region')}"
 
                     messages_list = split_message(reply_text, '📺<b>New updates available</b>')
                     
