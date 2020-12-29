@@ -38,7 +38,7 @@ import tswitch.db as db
 
 # # external
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater, CallbackContext, CallbackQueryHandler
-from telegram import ParseMode, Update, ChatAction, InlineKeyboardMarkup, InlineKeyboardButton
+from telegram import ParseMode, Update, ChatAction, InlineKeyboardMarkup, InlineKeyboardButton, error
 # import telegram
 
 # Enable logging
@@ -353,7 +353,7 @@ def stop(update: Update, context: CallbackContext):
     
     #remove user from mongo
     a = db.rm_from_collection('user_data', user_id)
-    print(a.deleted_count)
+    # print(a.deleted_count)
         
     logging.info(f'USER REQUEST {user_id}: user removed from database.')
     update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
@@ -403,7 +403,6 @@ def search(update: Update, context: CallbackContext):
         update.message.reply_text("📺<b>Search Games</b>\nYou need a keyword to search the database.\nExample: <code>/s paper mario</code>",
                         parse_mode=ParseMode.HTML)
         
-        
 
 def broadcast(update: Update, context: CallbackContext):
     """broadcast message to every user"""
@@ -422,9 +421,12 @@ def broadcast(update: Update, context: CallbackContext):
                                             parse_mode=ParseMode.HTML)
                     logging.info(f'ADM BROADCAST {user_id}: message sent')
                     sleep(2)
-                except:
-                    #TODO this might be a good way to know if an user is still active or not
-                    pass
+                except error.Unauthorized: #user blocked the bot
+                    #remove user from database
+                    a = db.rm_from_collection('user_data', user_id)
+                    #log it
+                    logging.info(f'JobQueue [nx-versions]: user blocked the bot and is being removed from the database.')
+                    
     else:
         update.message.reply_text(f"📺<b>Whoah there</b>\nHeeey, this is a secret feature, but unfortunally only admins can use it...\nBut you can have this cat: 🐈",
                                   parse_mode=ParseMode.HTML)
@@ -783,12 +785,22 @@ def callback_nxversions(context: CallbackContext):
                     messages_list = split_message(reply_text, '📺<b>New updates available</b>')
                     
                     sleep(3) #time between each user notification to avoid hitting API limits
+                    notified = False
                     for message in messages_list:
-                        context.bot.send_message(chat_id=int(user_id), 
-                                                text=message,
-                                                parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
-                                            
-                    logging.info(f'JobQueue [nx-versions]: notified {user_id}')
+                        try:
+                            context.bot.send_message(chat_id=int(user_id), 
+                                                    text=message,
+                                                    parse_mode=ParseMode.HTML)#TODO split message in case it passes telegram character limit
+                            notified = True
+                        except error.Unauthorized: #user blocked the bot
+                            #remove user from database
+                            a = db.rm_from_collection('user_data', user_id)
+                            #log it
+                            logging.info(f'JobQueue [nx-versions]: user blocked the bot and is being removed from the database.')
+                    
+                    if notified:
+                        logging.info(f'JobQueue [nx-versions]: notified {user_id}')
+
                 
     
     logging.info(f'JobQueue [nx-versions]: end') 
