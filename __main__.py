@@ -797,7 +797,8 @@ def callback_nxversions(context: CallbackContext):
                             a = db.rm_from_collection('user_data', user_id)
                             #log it
                             logging.info(f'JobQueue [nx-versions]: user blocked the bot and is being removed from the database.')
-                    
+                            break
+                        
                     if notified:
                         logging.info(f'JobQueue [nx-versions]: notified {user_id}')
 
