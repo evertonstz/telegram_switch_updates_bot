@@ -425,7 +425,7 @@ def broadcast(update: Update, context: CallbackContext):
                     #remove user from database
                     a = db.rm_from_collection('user_data', user_id)
                     #log it
-                    logging.info(f'JobQueue [nx-versions]: user blocked the bot and is being removed from the database.')
+                    logging.info(f'JobQueue [nx-versions]: user {user_id} blocked the bot and is being removed from the database.')
                     
     else:
         update.message.reply_text(f"📺<b>Whoah there</b>\nHeeey, this is a secret feature, but unfortunally only admins can use it...\nBut you can have this cat: 🐈",
@@ -796,7 +796,7 @@ def callback_nxversions(context: CallbackContext):
                             #remove user from database
                             a = db.rm_from_collection('user_data', user_id)
                             #log it
-                            logging.info(f'JobQueue [nx-versions]: user blocked the bot and is being removed from the database.')
+                            logging.info(f'JobQueue [nx-versions]: user {user_id} blocked the bot and is being removed from the database.')
                             break
                         
                     if notified:
