@@ -268,7 +268,7 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
     """function is used to build and interact with nx-versions database
     it's suposed to run every hour, but the interval can be tweaked at variables.py"""
     
-    logging.info(f'UPDATE {collection_name.upper()}: job started!')
+    logging.warning(f'UPDATE {collection_name.upper()}: job started!')
     
     # functions
     def AddtoDB(list_versions, first_run):
