@@ -167,7 +167,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     it's suposed to run every day, but the interval can be tweaked at variables.py"""
     repo_file = f'{repo_folder}/titles.US.en.json'
     
-    logging.info(f'UPDATE {collection_name.upper()}: job started!')
+    # logging.info(f'UPDATE {collection_name.upper()}: started!')
 
     def UpdateDB(first_run):
         """adds a the list of dirs to the current database"""
@@ -212,7 +212,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
             return res
             
         if first_run is True:
-            logging.info(f'UPDATE {collection_name.upper()} [first_run]: MangoDB is empty, populating it')
+            logging.warning(f'UPDATE {collection_name.upper()} [first_run]: MangoDB is empty, populating it')
             # add everything to mongo
             db.add_multiple_to_collection(collection_name, get_titledb())
             
@@ -232,9 +232,9 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
         except:
             pass
         
-        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloning titledb to {repo_folder}')
+        logging.warning(f'UPDATE {collection_name.upper()} [GIT]: cloning titledb to {repo_folder}')
         git.Repo.clone_from(var.TITLEDB, repo_folder)
-        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloned')
+        logging.warning(f'UPDATE {collection_name.upper()} [GIT]: cloned')
         rescan_db = True
     
     #check if present repository is behind master
@@ -244,11 +244,11 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     
     if commits_behind != 0:
         #means it's behind, pull from remote
-        logging.info(f"UPDATE {collection_name.upper()} [GIT]: changes on titledb's remote detected, pulling changes!")
+        logging.warning(f"UPDATE {collection_name.upper()} [GIT]: changes on titledb's remote detected, pulling changes!")
         repo.remotes.origin.pull() # pulls the changes from github
         rescan_db = True
     else:
-        logging.info(f"UPDATE {collection_name.upper()} [GIT]: no changes on titledb's remote detected.")
+        logging.warning(f"UPDATE {collection_name.upper()} [GIT]: no changes on titledb's remote detected.")
     
     #determine if it's first run
     first_run = collection_name not in db.list_collections()
@@ -258,7 +258,7 @@ def UpdateTitleDB(db_folder, repo_folder, collection_name='titledb'):
     result = False
     if first_run is True or rescan_db is True:
         #update entire database
-        logging.info(f'UPDATE {collection_name.upper()}: adding titledb to MongoDB')
+        logging.warning(f'UPDATE {collection_name.upper()}: adding titledb to MongoDB')
         result = UpdateDB(first_run)
         
     return result
@@ -275,7 +275,7 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
         """adds a the list of dirs to the current database"""
         
         if first_run is True:
-            logging.info(f'UPDATE {collection_name.upper()} [first_run]: MangoDB is empty, populating it')
+            logging.warning(f'UPDATE {collection_name.upper()} [first_run]: MangoDB is empty, populating it')
             db.add_multiple_to_collection(collection_name, list_versions)
             #return the entire database
             return db.return_collection(collection_name)
@@ -293,9 +293,9 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
                 
                 if res.raw_result['nModified'] > 0 or 'upserted' in res.raw_result: #updated on Mongo
                     if res.raw_result['nModified'] > 0:
-                        logging.info(f'UPDATE {collection_name.upper()} [{game_id}]: updated to version v{new_game_version}')
+                        logging.warning(f'UPDATE {collection_name.upper()} [{game_id}]: updated to version v{new_game_version}')
                     else:
-                        logging.info(f'UPDATE {collection_name.upper()} [{game_id}]: got first update to v{new_game_version}')
+                        logging.warning(f'UPDATE {collection_name.upper()} [{game_id}]: got first update to v{new_game_version}')
                     
                     return_list.append(game_dict)
             
@@ -327,10 +327,10 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
         except:
             pass
         
-        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloning nx-versions to {repo_folder}')
+        logging.warning(f'UPDATE {collection_name.upper()} [GIT]: cloning nx-versions to {repo_folder}')
         
         git.Repo.clone_from(var.NXVERSION, repo_folder)
-        logging.info(f'UPDATE {collection_name.upper()} [GIT]: cloned')
+        logging.warning(f'UPDATE {collection_name.upper()} [GIT]: cloned')
         rescan_db = True
     
     #check if present repository is behind master
@@ -341,11 +341,11 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
     
     if commits_behind != 0:
         #means it's behind, pull from remote
-        logging.info(f"UPDATE VERSIONS [GIT]: changes on nx-versions' remote detected, pulling changes!")
+        logging.warning(f"UPDATE VERSIONS [GIT]: changes on nx-versions' remote detected, pulling changes!")
         repo.remotes.origin.pull()
         rescan_db = True
     else:
-        logging.info(f"UPDATE VERSIONS [GIT]: no changes on nx-versions' remote detected.")
+        logging.warning(f"UPDATE VERSIONS [GIT]: no changes on nx-versions' remote detected.")
     
     #making database
     #determine if it's first run
@@ -368,8 +368,8 @@ def UpdateNxversiosDB(repo_folder, collection_name='titledb'):
                 result = AddtoDB(VersionsToList(nx_versions_file), first_run)
                 # logging.info(f'UPDATE {collection_name.upper()}: {len(result)} updates found in this run')
             else:
-                logging.info(f'UPDATE {collection_name.upper()} [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
+                logging.error(f'UPDATE {collection_name.upper()}: no version file located at: {repo_folder+"/versions.txt"}')
         else:
-            logging.info(f'UPDATE {collection_name.upper()} [ERROR]: no version file located at: {repo_folder+"/versions.txt"}')
+            logging.error(f'UPDATE {collection_name.upper()}: no version file located at: {repo_folder+"/versions.txt"}')
 
     return result

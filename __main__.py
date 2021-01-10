@@ -42,8 +42,16 @@ from telegram import ParseMode, Update, ChatAction, InlineKeyboardMarkup, Inline
 # import telegram
 
 # Enable logging
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
-logger = logging.getLogger(__name__)
+from rich.logging import RichHandler
+
+LOGLEVEL = "INFO"
+
+FORMAT = "%(message)s"
+logging.basicConfig(
+    level=LOGLEVEL, format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+)
+
+logger = logging.getLogger("rich")
 
 #importing and testing env variables
 def get_script_dir(follow_symlinks=True):
@@ -355,7 +363,7 @@ def stop(update: Update, context: CallbackContext):
     a = db.rm_from_collection('user_data', user_id)
     # print(a.deleted_count)
         
-    logging.info(f'USER REQUEST {user_id}: user removed from database.')
+    logging.warning(f'USER REQUEST {user_id}: user removed from database.')
     update.message.reply_text("<b>Done!</b>\nYour data was removed and the bot won't notify you anymore!", 
                             parse_mode=ParseMode.HTML)
 
@@ -419,13 +427,13 @@ def broadcast(update: Update, context: CallbackContext):
                     context.bot.send_message(chat_id=int(user_id), 
                                             text=f'📣<b>Admin Announcement</b>\n\n{value}',
                                             parse_mode=ParseMode.HTML)
-                    logging.info(f'ADM BROADCAST {user_id}: message sent')
+                    logging.warning(f'ADM BROADCAST {user_id}: message sent')
                     sleep(2)
                 except error.Unauthorized: #user blocked the bot
                     #remove user from database
                     a = db.rm_from_collection('user_data', user_id)
                     #log it
-                    logging.info(f'JobQueue [nx-versions]: user {user_id} blocked the bot and is being removed from the database.')
+                    logging.warning(f'JobQueue [nx-versions]: user {user_id} blocked the bot and is being removed from the database.')
                     
     else:
         update.message.reply_text(f"📺<b>Whoah there</b>\nHeeey, this is a secret feature, but unfortunally only admins can use it...\nBut you can have this cat: 🐈",
@@ -436,7 +444,7 @@ def broadcast(update: Update, context: CallbackContext):
 @send_typing_action
 def list_watched(update: Update, context: CallbackContext): #TODO add PSA in case notify all is acitve
     """used to return the current watch list to the user"""
-    logging.info(f'USER REQUEST: user asked for list_watched.')
+    logging.info(f'USER REQUEST: user asked for list_watched')
     
     user_id = get_user_id(update)
     if user_id == False:
@@ -466,13 +474,13 @@ def list_watched(update: Update, context: CallbackContext): #TODO add PSA in cas
             # reply_text += f"\n<code>{game_dict['_id']}</code> - {game_dict['name']} ({game_dict['region']})"
         
         if len(value) != 0:
-            logging.info(f'USER REQUEST {user_id}: user called /l but provided arguments.')
+            logging.debug(f'USER REQUEST {user_id}: user called /l but provided arguments.')
             reply_text += "\n\n<i>PSA: You provided arguments to /l and this is not needed, so next time just use /l</i>"
         
         messages_list = split_message(reply_text, f"📺<b>The following game IDs are in your watch list</b>")
         
     else:
-        logging.info(f'USER REQUEST {user_id}: user have no games in his watching list.')
+        logging.debug(f'USER REQUEST {user_id}: user have no games in his watching list.')
         messages_list = [f"📺<b>No games found</b>\nSeems like you didn't add any games to your watch list, try adding them with the /a command"]
     
     
@@ -492,12 +500,12 @@ def rm_games(update: Update, context: CallbackContext):
     logging.info(f'USER REQUEST {user_id}: user databse interaction: rm_games, provided IDs {value_list}.')
     
     if len(value_list) == 0:
-        logging.info(f'USER REQUEST {user_id}: user called /r but provided no arguments.')
+        logging.debug(f'USER REQUEST {user_id}: user called /r but provided no arguments.')
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /r you must provide at least one Game ID, multiple IDs must to be separated by a space.\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>\n\n<i>PSA: Don't know the game's ID? Try using /l to list all the games you're currently wathing</i>",
                                   parse_mode=ParseMode.HTML)
         return
     if len(value_list) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
-        logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
+        logging.debug(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can remove {var.USER_LIMIT} IDs per operation.",
                                   parse_mode=ParseMode.HTML)
         return      
@@ -506,7 +514,7 @@ def rm_games(update: Update, context: CallbackContext):
     reply_dict = {x:'🔴Invalid Game ID' for x in value_list}
     
     valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16]))
-    logging.info(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
+    logging.debug(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
 
     #adding valid ids to reply dictionary
     for i in valid_game_ids:
@@ -522,7 +530,7 @@ def rm_games(update: Update, context: CallbackContext):
     else:
         stored_game_ids = user_db['watched_games']
 
-    logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
+    logging.debug(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
     #adding game ids the user is already watchin
     for i in stored_game_ids:
@@ -531,7 +539,7 @@ def rm_games(update: Update, context: CallbackContext):
     
     # filter out games that are already in the list
     game_ids = list(set(stored_game_ids)-set(valid_game_ids))
-    logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
+    logging.debug(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
     
     # Store dicts on user_db and update them on mongodb
     user_db['watched_games'] = sorted(game_ids)
@@ -560,12 +568,12 @@ def add_games(update: Update, context: CallbackContext):
     logging.info(f'USER REQUEST {user_id}: user databse interaction: add_games, provided IDs {value_list}.')
     
     if len(value_list) == 0:
-        logging.info(f'USER REQUEST {user_id}: user called /a but provided no arguments.')
+        logging.debug(f'USER REQUEST {user_id}: user called /a but provided no arguments.')
         update.message.reply_text("📺<b>You didn't enter any Game ID</b>\nTo use /a you must provide at least one Game ID, multiple IDs must to be separated by a space\n\nExample: <code>/a 01000320000CC000 0100DA900B67A000</code>\n\n<i>PSA: Don't know the game's ID? Try searching a game's name with the /s command, the game ID will be in the results</i>",
                                   parse_mode=ParseMode.HTML)
         return
     if len(value_list) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
-        logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
+        logging.debug(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
                                   parse_mode=ParseMode.HTML)
         return      
@@ -574,7 +582,7 @@ def add_games(update: Update, context: CallbackContext):
     reply_dict = {x:'🔴Invalid Game ID' for x in value_list}
     
     valid_game_ids = list(set([x for x in value_list if x.isalnum() and len(x) == 16 and x.endswith('000') and db.is_id_on_db('titledb', x)]))
-    logging.info(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
+    logging.debug(f'USER REQUEST {user_id}: valid game ids provided by user {valid_game_ids}.')
     
     #adding valid ids to reply dictionary
     for i in valid_game_ids:
@@ -591,7 +599,7 @@ def add_games(update: Update, context: CallbackContext):
         stored_game_ids = user_db['watched_games']
 
 
-    logging.info(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
+    logging.debug(f'USER REQUEST {user_id}: game ids user already have saved {stored_game_ids}.')
     
     #adding game ids the user is already watchin
     for i in stored_game_ids:
@@ -602,12 +610,12 @@ def add_games(update: Update, context: CallbackContext):
     game_ids = list(set(valid_game_ids+stored_game_ids))
 
     if len(game_ids) > var.USER_LIMIT and user_id not in UNLIMITED_USERS:
-        logging.info(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
+        logging.debug(f'USER REQUEST {user_id}: user gave too many IDS: {len(value_list)}')
         update.message.reply_text(f"📺<b>You entered too many Game IDs</b>\nThis bot can only monitor {var.USER_LIMIT} IDs per user.",
                                 parse_mode=ParseMode.HTML)
         return
     
-    logging.info(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
+    logging.debug(f'USER REQUEST {user_id}: game ids that will be resaved in users db {game_ids}.')
     
     # Store dicts on user_db and update them on mongodb
     user_db['watched_games'] = sorted(game_ids)
@@ -716,39 +724,33 @@ def button(update, context):
 #job queues
 def callback_titledb(context: CallbackContext):
     """this is the callack for titledb's job queue"""  
-    logging.info('JobQueue [titledb]: start')
+    logging.info('JobQueue [titledb]: started')
     result = False
     
-    try:
-        result = UpdateTitleDB(f"{get_script_dir()}/database", f"{get_script_dir()}/titledb")
-    except:
-        jobqueue_error_handler(context, traceback.format_exc(), 'titledb -> callback_titledb -> UpdateTitleDB')
+    result = UpdateTitleDB(f"{get_script_dir()}/database", f"{get_script_dir()}/titledb")
 
     if result:
-        logging.info('JobQueue [titledb]: titledb updated')
+        logging.info(f'JobQueue [titledb]: {str(len(result))} titles added to database')
     else:
-        logging.info('JobQueue [titledb]: titledb not updated') 
+        logging.warning('JobQueue [titledb]: titledb not updated') 
     
-    logging.info('JobQueue [titledb]: end') 
+    logging.info('JobQueue [titledb]: finished') 
     
  
 def callback_nxversions(context: CallbackContext):
     """this is the callack for xnversios's job queue"""
     
-    logging.info('JobQueue [nx-versions]: start')
+    logging.info('JobQueue [nx-versions]: started')
     result = []
     users_to_notify = []
-    try:
-        result = UpdateNxversiosDB(f"{get_script_dir()}/nx-versions")
-    except:
-        jobqueue_error_handler(context, traceback.format_exc(), 'nx-versions -> callback_nxversions -> UpdateNxversiosDB')
 
-    
+    result = UpdateNxversiosDB(f"{get_script_dir()}/nx-versions")
+
     # result = [{'_id': '0100000000010000', 'version_number': '262144', 'update_id': '0100000000010800'}, 
     #           {'_id': '0100EB6005E90000', 'version_number': '24112', 'update_id': '0100EB6005E90800'}]
     
     if len(result) > 0:
-        logging.info(f'JobQueue [nx-versions]: calling user notification system')
+        logging.warning(f'JobQueue [nx-versions]: calling user notification system')
         
         result_ids = [x['_id'] for x in result]
         result_index_id = {x['_id']:x for x in result}
@@ -764,7 +766,7 @@ def callback_nxversions(context: CallbackContext):
             for user_info in users_to_notify:
                 if user_info['options']['mute'] == 0:
                     user_id = user_info['_id']
-                    logging.info(f'JobQueue [nx-versions]: trying to notify {user_id}')
+                    logging.warning(f'JobQueue [nx-versions]: trying to notify {user_id}')
                     
                     #match games user is watching against games in the result list
                     if user_info['options']['notify_all'] == 0:
@@ -796,15 +798,13 @@ def callback_nxversions(context: CallbackContext):
                             #remove user from database
                             a = db.rm_from_collection('user_data', user_id)
                             #log it
-                            logging.info(f'JobQueue [nx-versions]: user {user_id} blocked the bot and is being removed from the database.')
+                            logging.warning(f'JobQueue [nx-versions]: user {user_id} blocked the bot and is being removed from the database.')
                             break
                         
                     if notified:
-                        logging.info(f'JobQueue [nx-versions]: notified {user_id}')
+                        logging.warning(f'JobQueue [nx-versions]: notified {user_id}')
 
-                
-    
-    logging.info(f'JobQueue [nx-versions]: end') 
+    logging.info(f'JobQueue [nx-versions]: finished') 
     
 # main
 def main():
